@@ -343,7 +343,9 @@ function main() {
     // fixture を二重管理せずに書けるようにするため。
     const assetDir = spec.assetsFrom ? join(taskRoot, spec.assetsFrom) : dir;
     if (!existsSync(join(assetDir, "fixture"))) die(`${id}: fixture が無い (${assetDir})`);
-    return { id, dir, assetDir, spec, fixtureHash: sha256OfDir(join(assetDir, "fixture")) };
+    // prompt.md を直しても fixtureHash は変わらない。指示そのものも条件なので別に記録する。
+    const promptHash = createHash("sha256").update(readFileSync(join(dir, "prompt.md"))).digest("hex").slice(0, 16);
+    return { id, dir, assetDir, spec, promptHash, fixtureHash: sha256OfDir(join(assetDir, "fixture")) };
   });
 
   const runId = new Date().toISOString().replace(/[:.]/g, "-").replace("Z", "Z") + "_" + opts.profile;
@@ -375,7 +377,7 @@ function main() {
     os: { platform: platform(), release: release(), arch: arch(), host: hostname() },
     gitVersion: sh("git", ["--version"]),
     arms: arms.map((a) => ({ id: a.id, label: a.label, layers: a.layers })),
-    tasks: tasks.map((t) => ({ id: t.id, fixtureHash: t.fixtureHash, exercises: t.spec.exercises || [], expectedFiles: t.spec.expectedFiles || [] })),
+    tasks: tasks.map((t) => ({ id: t.id, fixtureHash: t.fixtureHash, promptHash: t.promptHash, exercises: t.spec.exercises || [], expectedFiles: t.spec.expectedFiles || [] })),
     strippedSettingsKeys: armsSpec.settings.strip,
     envStripped: "CLAUDE* (ANTHROPIC_* を除く) を子プロセスから落としている",
     caveats: [

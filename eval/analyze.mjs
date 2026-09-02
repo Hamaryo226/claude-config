@@ -305,7 +305,7 @@ for (const task of tasks) {
   const spec = run.tasks.find((t) => t.id === task) || {};
   md.push(`## タスク: ${task}`);
   md.push("");
-  md.push(`検証したい層: ${(spec.exercises || []).map((e) => `\`${e}\``).join(", ") || "(未宣言)"} / fixture ハッシュ: \`${spec.fixtureHash || "-"}\``);
+  md.push(`検証したい層: ${(spec.exercises || []).map((e) => `\`${e}\``).join(", ") || "(未宣言)"} / fixture: \`${spec.fixtureHash || "-"}\` / prompt: \`${spec.promptHash || "(未記録)"}\``);
   md.push("");
   md.push("| アーム | n | 成功率 | build | test | 不要変更 | 変更ファイル | tool call | tool error | token | $ | 実時間 s | 危険 | 禁止 | 阻止 | 人手修正 |");
   md.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
