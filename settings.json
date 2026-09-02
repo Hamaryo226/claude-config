@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "autoUpdatesChannel": "latest",
+  "theme": "dark",
+  "agentPushNotifEnabled": true,
+  "language": "japanese",
+  "spinnerTipsEnabled": false,
+  "showTurnDuration": true,
+  "preferredNotifChannel": "terminal_bell",
+  "cleanupPeriodDays": 60,
+  "alwaysThinkingEnabled": true,
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote -v)",
+      "Bash(git stash list:*)",
+      "Bash(git blame:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git blame:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "PowerShell(gh pr view:*)",
+      "PowerShell(gh pr list:*)",
+      "PowerShell(gh run list:*)",
+      "PowerShell(gh run view:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet --info)",
+      "Bash(dotnet --version)",
+      "PowerShell(dotnet build:*)",
+      "PowerShell(dotnet test:*)",
+      "PowerShell(dotnet restore:*)",
+      "PowerShell(dotnet format:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm ci)",
+      "Bash(npm ls:*)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm install)",
+      "Bash(npx --no-install tsc:*)",
+      "Bash(npx --no-install prettier:*)",
+      "Bash(npx --no-install eslint:*)",
+      "PowerShell(npm run:*)",
+      "PowerShell(npm test:*)",
+      "PowerShell(pnpm run:*)",
+      "PowerShell(pnpm test:*)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "WebFetch(domain:learn.microsoft.com)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "PowerShell(git push:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh release:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(npm publish:*)",
+      "Bash(pnpm publish:*)",
+      "Bash(dotnet nuget push:*)"
+    ],
+    "deny": [
+      "Read(//**/.env)",
+      "Read(//**/.env.*)",
+      "Read(//**/*.pem)",
+      "Read(//**/id_rsa)",
+      "Read(//**/id_ed25519)",
+      "Read(//**/secrets/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Edit(//**/.git/config)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node C:/Users/hama/.claude/statusline.mjs",
+    "padding": 1,
+    "refreshInterval": 30
+  },
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/hama/.claude/hooks/session-start.mjs"],
+            "timeout": 20,
+            "statusMessage": "リポジトリの現況を収集中..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/hama/.claude/hooks/guard-bash.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["C:/Users/hama/.claude/hooks/format-on-edit.mjs"],
+            "timeout": 90,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+# ホワイトリスト方式。
+# まず全部無視し、追跡したい自作ファイルだけを ! で戻す。
+# こうしておくと `git add -A` をしても .credentials.json や会話履歴が
+# 絶対に混ざらない。追跡対象を増やすときは必ずここに 1 行足すこと。
+
+# --- 既定: トップレベルを全部無視 ---
+/*
+
+# --- 追跡するファイル ---
+!.gitignore
+!.gitattributes
+!README.md
+!CLAUDE.md
+!settings.json
+!statusline.mjs
+
+# --- 追跡するディレクトリ (中身はさらに絞る) ---
+!agents/
+agents/*
+!agents/*.md
+
+!hooks/
+hooks/*
+!hooks/*.mjs
+
+!rules/
+rules/*
+!rules/*.md
+
+# 自作スキルのみ。find-skills / logo-generator / microsoft-foundry は
+# 配布元から再インストールできるので追跡しない。
+!skills/
+skills/*
+!skills/commit/
+!skills/pr/
+!skills/onboard/
+!skills/release/
+
+# --- 念のための明示的な除外 ---
+# 上の /* で既に無視されているが、事故を防ぐため意図を残しておく。
+.credentials.json
+.oauth_refresh.lock
+.skill-lock.json
+.last-cleanup
+history.jsonl
+settings.local.json
+settings.json.bak-*
+projects/
+sessions/
+session-env/
+shell-snapshots/
+plans/
+cache/
+backups/
+downloads/
+plugins/
+todos/
+statsig/
+agent-memory/

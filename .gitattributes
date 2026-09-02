@@ -1,0 +1,2 @@
+# スクリプトと Markdown は LF で保存する (Windows / Linux 双方で同じ内容になるように)
+* text=auto eol=lf
