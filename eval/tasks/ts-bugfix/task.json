@@ -1,0 +1,9 @@
+{
+  "id": "ts-bugfix",
+  "title": "落ちているテストを直す",
+  "summary": "chunk() が最後の端数を落とすバグ。テストが 1 件失敗している状態から始める。",
+  "exercises": ["CLAUDE.md", "rules/web.md"],
+  "expectedFiles": ["src/chunk.js"],
+  "expectedFilesNote": "テストを直すのは不正解。実装側だけを直すのが期待される変更。",
+  "timeoutSecHint": 600
+}

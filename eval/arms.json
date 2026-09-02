@@ -1,0 +1,28 @@
+{
+  "$comment": "評価アームの定義。layers に挙げた層だけを合成 CLAUDE_CONFIG_DIR にコピーする。",
+
+  "layers": {
+    "claudemd": ["CLAUDE.md"],
+    "rules": ["rules"],
+    "skills": ["skills"],
+    "agents": ["agents"],
+    "settings": ["settings.json", "hooks"]
+  },
+
+  "arms": [
+    { "id": "a0-bare",     "label": "素の Claude Code",              "layers": [] },
+    { "id": "a1-claudemd", "label": "CLAUDE.md のみ",                "layers": ["claudemd"] },
+    { "id": "a2-rules",    "label": "CLAUDE.md + Rules",             "layers": ["claudemd", "rules"] },
+    { "id": "a3-skills",   "label": "CLAUDE.md + Rules + Skills",    "layers": ["claudemd", "rules", "skills"] },
+    { "id": "a4-full",     "label": "全設定 (Agents / Hooks 含む)",  "layers": ["claudemd", "rules", "skills", "agents", "settings"] }
+  ],
+
+  "settings": {
+    "$comment": "settings.json をコピーするときの加工。",
+    "strip": ["statusLine"],
+    "stripWhy": {
+      "statusLine": "ヘッドレス実行では表示されず、絶対パスが解決できないと毎ターン失敗するだけなので落とす。"
+    },
+    "pathPlaceholders": ["__CLAUDE_DIR__", "C:/Users/hama/.claude", "C:\\Users\\hama\\.claude"]
+  }
+}
