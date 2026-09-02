@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "autoUpdatesChannel": "stable",
+  "theme": "dark",
+  "language": "japanese",
+  "spinnerTipsEnabled": false,
+  "showTurnDuration": true,
+  "preferredNotifChannel": "terminal_bell",
+  "cleanupPeriodDays": 30,
+  "alwaysThinkingEnabled": true,
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote -v)",
+      "Bash(git stash list:*)",
+      "Bash(git blame:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew check:*)",
+      "Bash(./gradlew spotlessApply:*)",
+      "Bash(./gradlew spotlessCheck:*)",
+      "Bash(./mvnw test:*)",
+      "Bash(./mvnw verify:*)",
+      "Bash(./mvnw compile:*)",
+      "PowerShell(./gradlew build:*)",
+      "PowerShell(./gradlew test:*)",
+      "PowerShell(./mvnw test:*)",
+      "PowerShell(./mvnw verify:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet format:*)",
+      "PowerShell(dotnet build:*)",
+      "PowerShell(dotnet test:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm ci)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm test:*)",
+      "Bash(npx --no-install tsc:*)",
+      "Bash(npx --no-install prettier:*)",
+      "Bash(npx --no-install eslint:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(terraform plan:*)",
+      "Bash(terraform validate:*)",
+      "Bash(terraform fmt:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(docker compose config:*)",
+      "Bash(docker ps:*)",
+      "Bash(systemctl status:*)",
+      "PowerShell(Get-Service:*)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "WebFetch(domain:docs.spring.io)",
+      "WebFetch(domain:learn.microsoft.com)",
+      "WebFetch(domain:docs.oracle.com)",
+      "WebFetch(domain:kotlinlang.org)",
+      "WebFetch(domain:docs.python.org)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "WebFetch(domain:kubernetes.io)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "PowerShell(git push:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh release:*)",
+      "Bash(npm publish:*)",
+      "Bash(dotnet nuget push:*)",
+      "Bash(./gradlew publish:*)",
+      "Bash(./mvnw deploy:*)",
+      "Bash(docker push:*)"
+    ],
+    "deny": [
+      "Read(//**/.env)",
+      "Read(//**/.env.*)",
+      "Read(//**/*.pem)",
+      "Read(//**/*.key)",
+      "Read(//**/*.pfx)",
+      "Read(//**/*.p12)",
+      "Read(//**/*.jks)",
+      "Read(//**/*.keystore)",
+      "Read(//**/*.kdbx)",
+      "Read(//**/id_rsa)",
+      "Read(//**/id_ed25519)",
+      "Read(//**/secrets/**)",
+      "Read(//**/credentials)",
+      "Read(//**/credentials.json)",
+      "Read(//**/serviceAccount*.json)",
+      "Read(//**/application-prod*.yml)",
+      "Read(//**/application-prod*.yaml)",
+      "Read(//**/application-prod*.properties)",
+      "Read(//**/appsettings.Production.json)",
+      "Read(//**/*.tfvars)",
+      "Read(//**/terraform.tfstate)",
+      "Read(//**/terraform.tfstate.backup)",
+      "Read(//**/.npmrc)",
+      "Read(//**/.pypirc)",
+      "Read(//**/.netrc)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.azure/**)",
+      "Read(~/.kube/config)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.m2/settings.xml)",
+      "Edit(//**/.git/config)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "PowerShell(Invoke-WebRequest:*)",
+      "PowerShell(Invoke-RestMethod:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node __CLAUDE_DIR__/statusline.mjs",
+    "padding": 1,
+    "refreshInterval": 30
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["__CLAUDE_DIR__/hooks/session-start.mjs"],
+            "timeout": 20,
+            "statusMessage": "リポジトリの現況を収集中..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["__CLAUDE_DIR__/hooks/guard-bash.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["__CLAUDE_DIR__/hooks/format-on-edit.mjs"],
+            "timeout": 90,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

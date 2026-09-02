@@ -36,6 +36,37 @@ skills/*
 !skills/onboard/
 !skills/release/
 
+# --- 会社 PC 用プロファイル (テンプレート。この PC では動かない) ---
+# work/ 配下は自作ファイルしか置かないが、万一 Claude Code の実行に使われた場合に
+# セッション履歴や認証情報が混ざらないよう、ここでもホワイトリストで絞る。
+!work/
+work/*
+!work/README.md
+!work/install.ps1
+!work/install.sh
+!work/CLAUDE.md
+!work/settings.json
+!work/statusline.mjs
+
+!work/agents/
+work/agents/*
+!work/agents/*.md
+
+!work/hooks/
+work/hooks/*
+!work/hooks/*.mjs
+
+!work/rules/
+work/rules/*
+!work/rules/*.md
+
+!work/skills/
+work/skills/*
+!work/skills/commit/
+!work/skills/pr/
+!work/skills/onboard/
+!work/skills/release/
+
 # --- 念のための明示的な除外 ---
 # 上の /* で既に無視されているが、事故を防ぐため意図を残しておく。
 .credentials.json
