@@ -1,0 +1,126 @@
+{
+  "runId": "2026-09-02T22-23-09-706Z_work",
+  "startedAt": "2026-09-02T22:23:09.729Z",
+  "profile": "work",
+  "profileDir": "/home/user/claude-config/work",
+  "configCommitSha": "2be2427f11753433a610661d141408277061541c",
+  "configWorkingTreeDirty": false,
+  "configDirtyWarning": null,
+  "claudeCodeVersion": "2.1.258 (Claude Code)",
+  "claudeCodeBinary": "/opt/node22/bin/claude",
+  "model": "sonnet",
+  "effort": "medium",
+  "permissionMode": "dontAsk",
+  "allowedTools": "Bash Edit Write Read Glob Grep Task Skill NotebookEdit",
+  "settingSources": "user",
+  "timeoutSec": 420,
+  "repeat": 3,
+  "node": "v22.22.2",
+  "os": {
+    "platform": "linux",
+    "release": "6.18.44-fc-v24",
+    "arch": "x64",
+    "host": "vm"
+  },
+  "gitVersion": "git version 2.43.0",
+  "arms": [
+    {
+      "id": "a0-bare",
+      "label": "素の Claude Code",
+      "layers": []
+    },
+    {
+      "id": "a1-claudemd",
+      "label": "CLAUDE.md のみ",
+      "layers": [
+        "claudemd"
+      ]
+    },
+    {
+      "id": "a2-rules",
+      "label": "CLAUDE.md + Rules",
+      "layers": [
+        "claudemd",
+        "rules"
+      ]
+    },
+    {
+      "id": "a3-skills",
+      "label": "CLAUDE.md + Rules + Skills",
+      "layers": [
+        "claudemd",
+        "rules",
+        "skills"
+      ]
+    },
+    {
+      "id": "a4-full",
+      "label": "全設定 (Agents / Hooks 含む)",
+      "layers": [
+        "claudemd",
+        "rules",
+        "skills",
+        "agents",
+        "settings"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "commit-skill",
+      "fixtureHash": "e518be5091f21868",
+      "exercises": [
+        "CLAUDE.md",
+        "skills/commit",
+        "hooks/guard-bash.mjs"
+      ],
+      "expectedFiles": [
+        "src/parser.js"
+      ]
+    },
+    {
+      "id": "git-hygiene",
+      "fixtureHash": "e518be5091f21868",
+      "exercises": [
+        "CLAUDE.md",
+        "hooks/guard-bash.mjs"
+      ],
+      "expectedFiles": [
+        "src/parser.js"
+      ]
+    },
+    {
+      "id": "md-style",
+      "fixtureHash": "e995c0ccc62f4e46",
+      "exercises": [
+        "CLAUDE.md",
+        "rules/markdown-ja.md"
+      ],
+      "expectedFiles": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "ts-bugfix",
+      "fixtureHash": "2ee089f8d9f6523a",
+      "exercises": [
+        "CLAUDE.md",
+        "rules/web.md"
+      ],
+      "expectedFiles": [
+        "src/chunk.js"
+      ]
+    }
+  ],
+  "strippedSettingsKeys": [
+    "statusLine"
+  ],
+  "envStripped": "CLAUDE* (ANTHROPIC_* を除く) を子プロセスから落としている",
+  "caveats": [
+    "permissionMode=dontAsk。permissions.allow に無いツールは自動的に拒否される。 --allowed-tools で全アームに共通の下限 (Bash Edit Write Read Glob Grep Task Skill NotebookEdit) を与えている。",
+    "モデルの出力は非決定的。反復 1 回の差はノイズと区別できない。",
+    "「人間による修正が必要だった回数」は自動取得できない。analyze.mjs が出す human-review.csv に手で記入すること。"
+  ],
+  "finishedAt": "2026-09-02T22:36:28.883Z",
+  "caseCount": 60
+}

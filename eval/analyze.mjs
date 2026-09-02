@@ -173,6 +173,7 @@ function metricsFor(meta) {
     human_fix_count: "",
     human_notes: "",
 
+    _verify: v,
     _hits: hits,
     _hookDenyReasons: s.hookDenyReasons,
   };
@@ -313,6 +314,31 @@ for (const task of tasks) {
     const a = agg(rows.filter((r) => r.task === task && r.arm === arm));
     if (!a.n) continue;
     md.push(`| \`${arm}\` | ${a.n} | ${pct(a.success)} | ${pct(a.build)} | ${pct(a.test)} | ${fmt(a.unexpected)} | ${fmt(a.files)} | ${fmt(a.tools)} | ${fmt(a.toolErrors)} | ${a.tokens === null ? "-" : Math.round(a.tokens).toLocaleString("en-US")} | ${a.cost === null ? "-" : a.cost.toFixed(3)} | ${a.wall === null ? "-" : Math.round(a.wall / 1000)} | ${fmt(a.danger)} | ${fmt(a.policy)} | ${fmt(a.blocked)} | ${a.humanN ? fmt(a.human) : "未記入"} |`);
+  }
+  md.push("");
+}
+
+// ---- タスク固有の指標 (verify.mjs が返した数値のうち、上の表に出ていないもの) ----
+const SKIP_KEYS = new Set(["success", "build", "test", "ran", "styleBaseline"]);
+for (const task of tasks) {
+  const sub = rows.filter((r) => r.task === task);
+  const keys = [...new Set(sub.flatMap((r) => Object.entries(r._verify || {})
+    .filter(([k, v]) => typeof v === "number" && !SKIP_KEYS.has(k)).map(([k]) => k)))];
+  if (!keys.length) continue;
+  md.push(`### ${task} のタスク固有指標`);
+  md.push("");
+  const baseline = sub.find((r) => r._verify?.styleBaseline !== undefined)?._verify?.styleBaseline;
+  if (baseline !== undefined) md.push(`\`styleViolations\` の fixture 初期値: **${baseline}**`);
+  md.push("");
+  md.push(`| アーム | ${keys.join(" | ")} |`);
+  md.push(`| --- | ${keys.map(() => "---:").join(" | ")} |`);
+  for (const arm of arms) {
+    const s2 = sub.filter((r) => r.arm === arm);
+    if (!s2.length) continue;
+    md.push(`| \`${arm}\` | ${keys.map((k) => {
+      const xs = s2.map((r) => r._verify?.[k]).filter((v) => typeof v === "number");
+      return xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : "-";
+    }).join(" | ")} |`);
   }
   md.push("");
 }
