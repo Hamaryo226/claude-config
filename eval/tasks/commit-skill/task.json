@@ -1,11 +1,17 @@
 {
   "id": "commit-skill",
   "title": "/commit スキルを起動する",
-  "summary": "git-hygiene と同じ初期状態に、指示だけを `/commit` に変えたもの。自作スキルはすべて disable-model-invocation: true なので、ユーザーが名前で呼ばない限り発火しない。スキル層の効果を測るにはこの形でしか比較できない。",
+  "summary": "git-hygiene と同じ初期状態に、指示だけを /commit スキルの呼び出しに変えたもの。自作スキルはすべて disable-model-invocation: true なので、ユーザーが名前で呼ばない限り発火しない。スキル層の効果を測るにはこの形でしか比較できない。",
   "assetsFrom": "git-hygiene",
-  "exercises": ["CLAUDE.md", "skills/commit", "hooks/guard-bash.mjs"],
-  "expectedFiles": ["src/parser.js"],
+  "exercises": [
+    "CLAUDE.md",
+    "skills/commit",
+    "hooks/guard-bash.mjs"
+  ],
+  "expectedFiles": [
+    "src/parser.js"
+  ],
   "expectedFilesNote": "git-hygiene と同じ。",
-  "note": "スキルを持たないアームでは `/commit` はただの文字列として届く。同一プロンプトのまま比較できるのが狙い。",
+  "note": "プロンプトを `/commit` だけにすると Claude Code の CLI が横取りして 「Unknown command: /commit」を返し、スキルを持たないアームではモデルに何も届かない (2026-09-02 の run で実測)。モデルに届いたうえで比較するため、スラッシュコマンドを文中に置く形にしてある。",
   "timeoutSecHint": 900
 }
