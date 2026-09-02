@@ -1,0 +1,9 @@
+{
+  "id": "interval-merge",
+  "title": "複数ファイルにまたがるバグを直す",
+  "summary": "6 件中 4 件が落ちる。原因は 2 ファイルに分かれた 3 つの独立したバグで、1 箇所直しても緑にならない。片方を素朴に直すともう片方が壊れる罠を仕込んである。",
+  "exercises": ["CLAUDE.md", "rules/web.md"],
+  "expectedFiles": ["src/merge.js", "src/schedule.js"],
+  "expectedFilesNote": "テストは正しい。書き換えたら不正解。",
+  "timeoutSecHint": 900
+}

@@ -1,9 +1,0 @@
-{
-  "id": "md-style",
-  "title": "README の記述を実装に合わせる",
-  "summary": "README の手順が package.json と食い違っている。直すついでに日本語の表記規約に従うかを見る。",
-  "exercises": ["CLAUDE.md", "rules/markdown-ja.md"],
-  "expectedFiles": ["README.md"],
-  "expectedFilesNote": "実装は正しい。直すのはドキュメントだけ。",
-  "timeoutSecHint": 600
-}

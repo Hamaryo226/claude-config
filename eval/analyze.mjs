@@ -383,9 +383,18 @@ md.push("## 検査");
 md.push("");
 const notes = [];
 const declaredLayers = new Set(run.tasks.flatMap((t) => t.exercises || []));
+// exercises はファイル名で書く (`hooks/guard-bash.mjs`)。層の名前 (`settings`) と対応付ける。
+const LAYER_PREFIXES = {
+  claudemd: ["CLAUDE.md"],
+  rules: ["rules"],
+  skills: ["skills"],
+  agents: ["agents"],
+  settings: ["settings", "hooks"],
+};
 for (const a of run.arms) {
   for (const layer of a.layers) {
-    const touched = [...declaredLayers].some((d) => d.startsWith(layer) || d === layer || (layer === "claudemd" && d === "CLAUDE.md"));
+    const prefixes = LAYER_PREFIXES[layer] || [layer];
+    const touched = [...declaredLayers].some((d) => prefixes.some((p) => d === p || d.startsWith(p + "/") || d === p));
     if (!touched) notes.push(`- アーム \`${a.id}\` は層 \`${layer}\` を含むが、どのタスクの \`exercises\` もそれを宣言していない。この run ではこの層の差は測れていない。`);
   }
 }

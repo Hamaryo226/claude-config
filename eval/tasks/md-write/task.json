@@ -1,0 +1,10 @@
+{
+  "id": "md-write",
+  "title": "README に新しい節を書き足す",
+  "summary": "実装を読んで、まだドキュメント化されていないオプションの節を日本語で新規に書く。書いた文章そのものが rules/markdown-ja.md の対象になる。",
+  "exercises": ["CLAUDE.md", "rules/markdown-ja.md"],
+  "expectedFiles": ["README.md"],
+  "expectedFilesNote": "実装は正しい。書き足すのはドキュメントだけ。",
+  "note": "旧 md-style を作り替えたもの。旧版は『食い違ったコマンド名を直す』指示だったため、正しい最小の修正では表記規約の対象になる行に一度も触れず、全アームで違反数が fixture 初期値のまま動かなかった (2026-09-02 の run で実測)。表記規約を測るにはモデルに文章を書かせる必要がある。",
+  "timeoutSecHint": 600
+}

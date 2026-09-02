@@ -29,6 +29,8 @@ const DEFAULTS = {
   timeout: 900,
   out: null,
   copyCredentials: false,
+  seed: 1,
+  shuffle: true,
   dryRun: false,
   keepWorkspace: true,
 };
@@ -50,6 +52,8 @@ function parseArgs(argv) {
       case "--timeout": o.timeout = Number(next()); break;
       case "--out": o.out = next(); break;
       case "--copy-credentials": o.copyCredentials = true; break;
+      case "--seed": o.seed = Number(next()); break;
+      case "--no-shuffle": o.shuffle = false; break;
       case "--dry-run": o.dryRun = true; break;
       case "--no-keep-workspace": o.keepWorkspace = false; break;
       case "-h": case "--help": usage(); process.exit(0);
@@ -77,6 +81,8 @@ function usage() {
   --timeout <sec>             1 実行あたりの上限秒数 (既定: 900)
   --out <dir>                 出力先 (既定: <tmp>/claude-config-eval/<run-id>)
   --copy-credentials          .credentials.json を各アームの設定ディレクトリへ複製する
+  --seed <int>                実行順シャッフルの種 (既定: 1)。同じ種なら同じ順序になる
+  --no-shuffle                シャッフルせずタスク順・アーム順のまま回す
   --dry-run                   実行計画と実験条件だけを書き出して終わる
   --no-keep-workspace         実行後に作業コピーを消す (差分は取得済み)
 `);
@@ -124,6 +130,28 @@ function childEnv(extra) {
     env[k] = v;
   }
   return { ...env, ...extra };
+}
+
+/** mulberry32。種から決まる擬似乱数。実行順を再現できるようにするためだけに使う。 */
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates。元の配列は壊さない。 */
+function shuffled(items, seed) {
+  const r = rng(seed);
+  const a = items.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 // ---------------------------------------------------------------- アームの設定ディレクトリを組み立てる
@@ -348,6 +376,12 @@ function main() {
     return { id, dir, assetDir, spec, promptHash, fixtureHash: sha256OfDir(join(assetDir, "fixture")) };
   });
 
+  // タスク順に固めて回すと、後半のアームだけ API の混み具合や自分の疲れ方が違う、といった
+  // 順序の効果が交絡する。種を記録したうえでシャッフルする。
+  const flat = [];
+  for (const task of tasks) for (const arm of arms) for (let rep = 1; rep <= opts.repeat; rep++) flat.push({ task, arm, rep });
+  const plan = opts.shuffle ? shuffled(flat, opts.seed) : flat;
+
   const runId = new Date().toISOString().replace(/[:.]/g, "-").replace("Z", "Z") + "_" + opts.profile;
   const runDir = opts.out ? resolve(opts.out) : join(tmpdir(), "claude-config-eval", runId);
   mkdirSync(runDir, { recursive: true });
@@ -373,6 +407,9 @@ function main() {
     settingSources: "user",
     timeoutSec: opts.timeout,
     repeat: opts.repeat,
+    shuffle: opts.shuffle,
+    seed: opts.seed,
+    executionOrder: plan.map((p) => `${p.task.id}__${p.arm.id}__r${p.rep}`),
     node: process.version,
     os: { platform: platform(), release: release(), arch: arch(), host: hostname() },
     gitVersion: sh("git", ["--version"]),
@@ -398,7 +435,8 @@ function main() {
   log(`Claude Code: ${conditions.claudeCodeVersion} / model=${opts.model} effort=${opts.effort} permission-mode=${opts.permissionMode}`);
   log(`アーム: ${arms.map((a) => a.id).join(", ")}`);
   log(`タスク: ${tasks.map((t) => t.id).join(", ")}`);
-  log(`総実行数: ${arms.length * tasks.length * opts.repeat}`);
+  log(`総実行数: ${plan.length}`);
+  log(opts.shuffle ? `実行順: seed=${opts.seed} でシャッフル` : "実行順: シャッフルなし");
   if (opts.repeat < 3) log("注意: --repeat が 3 未満。アーム間の差をノイズと区別できない。");
 
   // ---- アームごとの設定ディレクトリを 1 度だけ組む ----
@@ -417,13 +455,10 @@ function main() {
   if (opts.dryRun) { log("\n--dry-run のためここで終了。run.json と configs/ だけ書き出した。"); return; }
 
   const metas = [];
-  for (const task of tasks) {
-    log(`\nタスク: ${task.id}`);
-    for (const arm of arms) {
-      for (let rep = 1; rep <= opts.repeat; rep++) {
-        metas.push(runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir }));
-      }
-    }
+  let done = 0;
+  for (const { task, arm, rep } of plan) {
+    log(`\n[${++done}/${plan.length}] ${task.id} / ${arm.id} / r${rep}`);
+    metas.push(runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir }));
   }
 
   writeFileSync(join(runDir, "cases.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
