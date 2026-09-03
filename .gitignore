@@ -31,6 +31,7 @@ rules/*
 # 配布元から再インストールできるので追跡しない。
 !skills/
 skills/*
+!skills/codebase-conventions/
 !skills/commit/
 !skills/pr/
 !skills/onboard/
@@ -79,6 +80,7 @@ work/rules/*
 
 !work/skills/
 work/skills/*
+!work/skills/codebase-conventions/
 !work/skills/commit/
 !work/skills/pr/
 !work/skills/onboard/
