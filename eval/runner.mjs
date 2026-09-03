@@ -31,6 +31,7 @@ const DEFAULTS = {
   copyCredentials: false,
   seed: 1,
   shuffle: true,
+  resume: false,
   dryRun: false,
   keepWorkspace: true,
 };
@@ -54,6 +55,7 @@ function parseArgs(argv) {
       case "--copy-credentials": o.copyCredentials = true; break;
       case "--seed": o.seed = Number(next()); break;
       case "--no-shuffle": o.shuffle = false; break;
+      case "--resume": o.resume = true; break;
       case "--dry-run": o.dryRun = true; break;
       case "--no-keep-workspace": o.keepWorkspace = false; break;
       case "-h": case "--help": usage(); process.exit(0);
@@ -83,6 +85,8 @@ function usage() {
   --copy-credentials          .credentials.json を各アームの設定ディレクトリへ複製する
   --seed <int>                実行順シャッフルの種 (既定: 1)。同じ種なら同じ順序になる
   --no-shuffle                シャッフルせずタスク順・アーム順のまま回す
+  --resume                    既に meta.json のあるケースを飛ばして続きから回す
+                              (--out に前回と同じディレクトリを渡すこと)
   --dry-run                   実行計画と実験条件だけを書き出して終わる
   --no-keep-workspace         実行後に作業コピーを消す (差分は取得済み)
 `);
@@ -351,8 +355,8 @@ function main() {
   const profileDir = opts.profile === "work" ? join(REPO_DIR, "work") : REPO_DIR;
   if (!existsSync(join(profileDir, "CLAUDE.md"))) die(`プロファイルが見つからない: ${profileDir}`);
 
-  const arms = armsSpec.arms.filter((a) => !opts.arms || opts.arms.includes(a.id));
-  if (opts.arms) for (const id of opts.arms) if (!arms.some((a) => a.id === id)) die(`不明なアーム: ${id}`);
+  const armById = Object.fromEntries(armsSpec.arms.map((a) => [a.id, a]));
+  if (opts.arms) for (const id of opts.arms) if (!armById[id]) die(`不明なアーム: ${id}`);
 
   const taskRoot = join(EVAL_DIR, "tasks");
   const taskIds = readdirSync(taskRoot, { withFileTypes: true })
@@ -376,11 +380,19 @@ function main() {
     return { id, dir, assetDir, spec, promptHash, fixtureHash: sha256OfDir(join(assetDir, "fixture")) };
   });
 
-  // タスク順に固めて回すと、後半のアームだけ API の混み具合や自分の疲れ方が違う、といった
-  // 順序の効果が交絡する。種を記録したうえでシャッフルする。
+  // 総当たりはしない。タスクごとに「そのタスクで意味のある比較」だけを task.json が宣言する。
+  // 無意味な組を減らしたぶんを反復回数に回すのが狙い。--arms を渡すとそちらが優先。
   const flat = [];
-  for (const task of tasks) for (const arm of arms) for (let rep = 1; rep <= opts.repeat; rep++) flat.push({ task, arm, rep });
+  for (const task of tasks) {
+    const ids = opts.arms || task.spec.arms || armsSpec.arms.map((a) => a.id);
+    for (const id of ids) {
+      if (!armById[id]) die(`${task.id}: 不明なアーム: ${id}`);
+      for (let rep = 1; rep <= opts.repeat; rep++) flat.push({ task, arm: armById[id], rep });
+    }
+  }
+  if (!flat.length) die("実行する組み合わせが無い");
   const plan = opts.shuffle ? shuffled(flat, opts.seed) : flat;
+  const arms = [...new Set(plan.map((p) => p.arm.id))].map((id) => armById[id]);
 
   const runId = new Date().toISOString().replace(/[:.]/g, "-").replace("Z", "Z") + "_" + opts.profile;
   const runDir = opts.out ? resolve(opts.out) : join(tmpdir(), "claude-config-eval", runId);
@@ -414,7 +426,14 @@ function main() {
     os: { platform: platform(), release: release(), arch: arch(), host: hostname() },
     gitVersion: sh("git", ["--version"]),
     arms: arms.map((a) => ({ id: a.id, label: a.label, layers: a.layers })),
-    tasks: tasks.map((t) => ({ id: t.id, fixtureHash: t.fixtureHash, promptHash: t.promptHash, exercises: t.spec.exercises || [], expectedFiles: t.spec.expectedFiles || [] })),
+    tasks: tasks.map((t) => ({
+      id: t.id, fixtureHash: t.fixtureHash, promptHash: t.promptHash,
+      exercises: t.spec.exercises || [], expectedFiles: t.spec.expectedFiles || [],
+      arms: opts.arms || t.spec.arms || null,
+      armsWhy: t.spec.armsWhy || null,
+      comparisons: t.spec.comparisons || [],
+    })),
+    planSize: plan.length,
     strippedSettingsKeys: armsSpec.settings.strip,
     envStripped: "CLAUDE* (ANTHROPIC_* を除く) を子プロセスから落としている",
     caveats: [
@@ -456,10 +475,22 @@ function main() {
 
   const metas = [];
   let done = 0;
+  let skipped = 0;
   for (const { task, arm, rep } of plan) {
-    log(`\n[${++done}/${plan.length}] ${task.id} / ${arm.id} / r${rep}`);
+    done++;
+    const key = `${task.id}__${arm.id}__r${rep}`;
+    const metaPath = join(runDir, "cases", key, "meta.json");
+    if (opts.resume && existsSync(metaPath)) {
+      metas.push(JSON.parse(readFileSync(metaPath, "utf8")));
+      skipped++;
+      continue;
+    }
+    log(`\n[${done}/${plan.length}] ${key}`);
     metas.push(runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir }));
+    // 途中で落ちても、そこまでの分を analyze.mjs に食わせられるようにする
+    writeFileSync(join(runDir, "cases.partial.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
   }
+  if (skipped) log(`\n--resume: ${skipped} 件は既存の結果を再利用した`);
 
   writeFileSync(join(runDir, "cases.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
   const finished = { ...conditions, finishedAt: new Date().toISOString(), caseCount: metas.length };

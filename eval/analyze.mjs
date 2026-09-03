@@ -27,6 +27,7 @@ function parseStream(path) {
     init: null,
     toolCalls: 0, toolCallsByName: {}, toolErrors: 0,
     shellCommands: [],
+    touchedPaths: [],
     subagentCalls: 0, skillCalls: 0,
     hooksFired: 0, hookDenies: 0, hookDenyReasons: [],
     result: null,
@@ -61,6 +62,10 @@ function parseStream(path) {
         if ((c.name === "Bash" || c.name === "PowerShell") && typeof c.input?.command === "string") {
           out.shellCommands.push(c.input.command);
         }
+        for (const key of ["file_path", "notebook_path", "path", "pattern"]) {
+          const v = c.input?.[key];
+          if (typeof v === "string" && v) out.touchedPaths.push(v);
+        }
       }
       continue;
     }
@@ -79,6 +84,49 @@ function parseStream(path) {
 
 const globToRe = (g) =>
   new RegExp("^" + g.split("*").map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*") + "$");
+
+// --- rules が「実際に読み込まれる状況だったか」の判定 -------------------------------
+// rules/*.md は paths に一致するファイルを触ったときにだけ読み込まれる。読み込みイベントは
+// ストリームに出ないので、モデルが触ったファイルとグロブを突き合わせて推定する。
+// これが空なら「効果が無かった」ではなく「タスクがその rule を発火させていない」。
+
+// glob を正規表現にする。brace 展開してから 1 文字ずつ見る。
+// (この関数の説明にグロブの実例を書くと、コメントが途中で閉じるので書かない)
+function ruleGlobToRe(glob) {
+  const expand = (g) => {
+    const m = /\{([^{}]*)\}/.exec(g);
+    if (!m) return [g];
+    return m[1].split(",").flatMap((alt) => expand(g.slice(0, m.index) + alt + g.slice(m.index + m[0].length)));
+  };
+  const SPECIAL = ".+?^${}()|[]\\";
+  const one = (g) => {
+    let out = "";
+    for (let i = 0; i < g.length; i++) {
+      const c = g[i];
+      if (c === "*") {
+        if (g[i + 1] === "*" && g[i + 2] === "/") { out += "(?:.*/)?"; i += 2; }
+        else if (g[i + 1] === "*") { out += ".*"; i += 1; }
+        else out += "[^/]*";
+      } else if (SPECIAL.includes(c)) out += "\\" + c;
+      else out += c;
+    }
+    return out;
+  };
+  return new RegExp("^(?:" + expand(glob).map(one).join("|") + ")$");
+}
+
+/** アームの設定ディレクトリから rules の paths を読む。 */
+function loadArmRules(armId) {
+  const dir = join(runDir, "configs", armId, "rules");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((n) => n.endsWith(".md")).map((n) => {
+    const fm = /^---\n([\s\S]*?)\n---/.exec(readFileSync(join(dir, n), "utf8"));
+    const globs = fm ? [...fm[1].matchAll(/^\s*-\s*["']?(.+?)["']?\s*$/gm)].map((m) => m[1]) : [];
+    return { file: `rules/${n}`, res: globs.map(ruleGlobToRe) };
+  });
+}
+const armRulesCache = {};
+const armRules = (armId) => (armRulesCache[armId] ||= loadArmRules(armId));
 
 function matchesAny(path, globs) {
   return globs.some((g) => (g.includes("*") ? globToRe(g).test(path) : g === path));
@@ -123,6 +171,14 @@ function metricsFor(meta) {
     // --- アームが実際に読み込まれたかの検証 ---
     loaded_skills: (s.init?.skills || []).length,
     loaded_agents: (s.init?.agents || []).length,
+    rules_activated: (() => {
+      const cwd = (s.init?.cwd || "").split("\\").join("/");
+      const rel = s.touchedPaths.map((p) => {
+        const q = p.split("\\").join("/");
+        return cwd && q.startsWith(cwd + "/") ? q.slice(cwd.length + 1) : q.replace(/^\.\//, "");
+      });
+      return armRules(meta.arm).filter((r) => rel.some((f) => r.res.some((re) => re.test(f)))).map((r) => r.file).join(" ");
+    })(),
 
     // --- 成否 ---
     completed: r.subtype === "success" && !r.is_error && meta.spawn?.status === 0,
@@ -181,8 +237,20 @@ function metricsFor(meta) {
 
 // ---------------------------------------------------------------- 読み込み
 
-const metas = readFileSync(join(runDir, "cases.jsonl"), "utf8")
-  .split("\n").filter(Boolean).map((l) => JSON.parse(l));
+// 完走していれば cases.jsonl、途中なら cases.partial.jsonl、どちらも無ければ各ケースの meta.json。
+function loadMetas() {
+  for (const name of ["cases.jsonl", "cases.partial.jsonl"]) {
+    const p = join(runDir, name);
+    if (existsSync(p)) return readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  }
+  const casesDir = join(runDir, "cases");
+  if (!existsSync(casesDir)) { console.error("結果が 1 件も無い"); process.exit(1); }
+  return readdirSync(casesDir)
+    .map((d) => join(casesDir, d, "meta.json"))
+    .filter((p) => existsSync(p))
+    .map((p) => JSON.parse(readFileSync(p, "utf8")));
+}
+const metas = loadMetas();
 const rows = metas.map(metricsFor);
 
 // 人手評価の突き合わせ (あれば)
@@ -351,6 +419,102 @@ for (const task of tasks) {
   }
   md.push("");
 }
+
+// ---- 宣言された比較の差分 ----
+// 2 群の比率差は正規近似 (連続修正なし)。n が小さいので「差ありと言えるか」の目安にしか使わない。
+function propTest(k1, n1, k2, n2) {
+  if (!n1 || !n2) return null;
+  const p1 = k1 / n1, p2 = k2 / n2;
+  const p = (k1 + k2) / (n1 + n2);
+  const se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2));
+  if (se === 0) return { diff: p2 - p1, z: 0, significant: false };
+  const z = (p2 - p1) / se;
+  return { diff: p2 - p1, z, significant: Math.abs(z) >= 1.96 && n1 >= 5 && n2 >= 5 };
+}
+const sd = (xs) => {
+  if (xs.length < 2) return null;
+  const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+  return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1));
+};
+
+/**
+ * 追加した層が、その実行で実際に発火したかを数える。
+ * ここが 0 なら「設定が効かなかった」ではなく「タスクがその設定を発火させていない」。
+ * どちらなのかを取り違えると、効いていない設定を捨てる判断も、効くはずの設定を諦める判断も間違う。
+ */
+function activation(measures, treatmentRows) {
+  const n = treatmentRows.length;
+  const count = (f) => treatmentRows.filter(f).length;
+  if (measures === "CLAUDE.md" || measures.startsWith("claudemd")) {
+    return { fired: null, label: `常時 (${n}/${n})` }; // システムプロンプトに載るので必ず効いている
+  }
+  if (measures.startsWith("rules")) {
+    const file = measures.includes("/") ? measures : null;
+    const k = count((r) => (file ? String(r.rules_activated).includes(file.split("/").pop()) : String(r.rules_activated).trim() !== ""));
+    return { fired: k > 0, label: `${k}/${n}` };
+  }
+  if (measures.startsWith("skills")) { const k = count((r) => r.skill_calls > 0); return { fired: k > 0, label: `${k}/${n}` }; }
+  if (measures.startsWith("agents")) { const k = count((r) => r.subagent_calls > 0); return { fired: k > 0, label: `${k}/${n}` }; }
+  if (measures.startsWith("hooks")) { const k = count((r) => r.hooks_fired > 0); return { fired: k > 0, label: `${k}/${n}` }; }
+  return { fired: null, label: "-" };
+}
+
+md.push("## 宣言された比較");
+md.push("");
+md.push("タスクごとに `task.json` が「この差分を測りたい」と宣言したペアだけを並べる。");
+md.push("成功率の差は 2 群の比率差の正規近似 (|z| >= 1.96 かつ両群 n >= 5 で「差あり」)。");
+md.push("n が小さいので、これは検定というより**差を主張してよいかの足切り**として読むこと。");
+md.push("");
+md.push("「発火」列は、追加した層がその実行で実際に動いた回数。ここが 0 なら結論は");
+md.push("「効果が無い」ではなく**「このタスクがその設定を発火させていない」**。判定は次のどれか:");
+md.push("");
+md.push("- `常時` — CLAUDE.md はシステムプロンプトに載るので必ず効いている");
+md.push("- rules — `paths` に一致するファイルをモデルが触った実行数 (触ったファイルとグロブの突き合わせによる推定)");
+md.push("- skills — `Skill` ツールを呼んだ実行数");
+md.push("- agents — サブエージェントを起動した実行数");
+md.push("- hooks — `hook_started` が出た実行数");
+md.push("");
+let anyComparison = false;
+for (const task of tasks) {
+  const spec = run.tasks.find((t) => t.id === task);
+  const comps = spec?.comparisons || [];
+  if (!comps.length) continue;
+  anyComparison = true;
+  md.push(`### ${task}`);
+  md.push("");
+  if (spec.armsWhy) md.push(`回すアームの選び方: ${spec.armsWhy}`);
+  md.push("");
+  md.push("| 測る対象 | 対照 → 追加 | 発火 | 成功 | 差 | 判定 | token 変化 | $ 変化 | 実時間 変化 | tool call 変化 |");
+  md.push("| --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |");
+  for (const c of comps) {
+    const b = rows.filter((r) => r.task === task && r.arm === c.baseline);
+    const t = rows.filter((r) => r.task === task && r.arm === c.treatment);
+    if (!b.length || !t.length) { md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | (未実行) | - | - | - | - | - | - |`); continue; }
+    const kb = b.filter((r) => r.task_success === true).length;
+    const kt = t.filter((r) => r.task_success === true).length;
+    const st = propTest(kb, b.length, kt, t.length);
+    const delta = (key) => {
+      const xb = b.map((r) => num(r[key])).filter((v) => v !== null);
+      const xt = t.map((r) => num(r[key])).filter((v) => v !== null);
+      if (!xb.length || !xt.length) return "-";
+      const mb = xb.reduce((a, x) => a + x, 0) / xb.length;
+      const mt = xt.reduce((a, x) => a + x, 0) / xt.length;
+      if (mb === 0) return mt === 0 ? "±0%" : "+∞";
+      const pctChange = ((mt - mb) / mb) * 100;
+      return `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(0)}%`;
+    };
+    const act = activation(c.measures, t);
+    const verdict = act.fired === false ? "**発火せず**"
+      : st === null ? "-"
+      : st.significant ? (st.diff > 0 ? "**改善**" : "**悪化**")
+      : "差を主張できない";
+    md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | ${act.label} | ${kb}/${b.length} → ${kt}/${t.length} | ${st ? (st.diff * 100).toFixed(0) + "pt" : "-"} | ${verdict} | ${delta("total_tokens")} | ${delta("cost_usd")} | ${delta("wall_ms")} | ${delta("tool_calls")} |`);
+  }
+  md.push("");
+  for (const c of comps) md.push(`- \`${c.measures}\` — ${c.why}`);
+  md.push("");
+}
+if (!anyComparison) { md.push("`task.json` に `comparisons` の宣言が無い。"); md.push(""); }
 
 md.push("## 全タスク合計");
 md.push("");

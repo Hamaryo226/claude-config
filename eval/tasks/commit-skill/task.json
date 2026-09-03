@@ -13,5 +13,18 @@
   ],
   "expectedFilesNote": "git-hygiene と同じ。",
   "note": "プロンプトを `/commit` だけにすると Claude Code の CLI が横取りして 「Unknown command: /commit」を返し、スキルを持たないアームではモデルに何も届かない (2026-09-02 の run で実測)。モデルに届いたうえで比較するため、スラッシュコマンドを文中に置く形にしてある。",
-  "timeoutSecHint": 900
+  "timeoutSecHint": 900,
+  "arms": [
+    "a2-rules",
+    "a3-skills"
+  ],
+  "armsWhy": "スキルの有無だけが問題。a0 / a1 は git-hygiene が同じ初期状態で測っている。",
+  "comparisons": [
+    {
+      "baseline": "a2-rules",
+      "treatment": "a3-skills",
+      "measures": "skills/commit",
+      "why": "スキルを持つと /commit の呼び出しに応えられるか"
+    }
+  ]
 }

@@ -2,9 +2,34 @@
   "id": "md-write",
   "title": "README に新しい節を書き足す",
   "summary": "実装を読んで、まだドキュメント化されていないオプションの節を日本語で新規に書く。書いた文章そのものが rules/markdown-ja.md の対象になる。",
-  "exercises": ["CLAUDE.md", "rules/markdown-ja.md"],
-  "expectedFiles": ["README.md"],
+  "exercises": [
+    "CLAUDE.md",
+    "rules/markdown-ja.md"
+  ],
+  "expectedFiles": [
+    "README.md"
+  ],
   "expectedFilesNote": "実装は正しい。書き足すのはドキュメントだけ。",
   "note": "旧 md-style を作り替えたもの。旧版は『食い違ったコマンド名を直す』指示だったため、正しい最小の修正では表記規約の対象になる行に一度も触れず、全アームで違反数が fixture 初期値のまま動かなかった (2026-09-02 の run で実測)。表記規約を測るにはモデルに文章を書かせる必要がある。",
-  "timeoutSecHint": 600
+  "timeoutSecHint": 600,
+  "arms": [
+    "a0-bare",
+    "a1-claudemd",
+    "a2-rules"
+  ],
+  "armsWhy": "Skills / Agents / Hooks は文章を書く手順に関与しないので回さない。",
+  "comparisons": [
+    {
+      "baseline": "a0-bare",
+      "treatment": "a1-claudemd",
+      "measures": "CLAUDE.md",
+      "why": "日本語で書く・冗長を削る、といった一般的な指示だけで文章の質が変わるか"
+    },
+    {
+      "baseline": "a1-claudemd",
+      "treatment": "a2-rules",
+      "measures": "rules/markdown-ja.md",
+      "why": "箇条書きの記号・全角括弧・常体といった具体的な表記規約が効くか"
+    }
+  ]
 }
