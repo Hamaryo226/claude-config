@@ -29,6 +29,7 @@ function parseStream(path) {
     shellCommands: [],
     touchedPaths: [],
     subagentCalls: 0, skillCalls: 0,
+    skillNames: [], skillRefused: 0, skillUseIds: {},
     hooksFired: 0, hookDenies: 0, hookDenyReasons: [],
     result: null,
     parseErrors: 0,
@@ -58,7 +59,12 @@ function parseStream(path) {
         out.toolCalls++;
         out.toolCallsByName[c.name] = (out.toolCallsByName[c.name] || 0) + 1;
         if (c.name === "Task" || c.name === "Agent") out.subagentCalls++;
-        if (c.name === "Skill") out.skillCalls++;
+        if (c.name === "Skill") {
+          out.skillCalls++;
+          const name = c.input?.skill ?? c.input?.name;
+          if (typeof name === "string") out.skillNames.push(name);
+          out.skillUseIds[c.id] = true;
+        }
         if ((c.name === "Bash" || c.name === "PowerShell") && typeof c.input?.command === "string") {
           out.shellCommands.push(c.input.command);
         }
@@ -71,7 +77,15 @@ function parseStream(path) {
     }
 
     if (m.type === "user") {
-      for (const c of m.message?.content || []) if (c.type === "tool_result" && c.is_error) out.toolErrors++;
+      for (const c of m.message?.content || []) {
+        if (c.type !== "tool_result") continue;
+        if (c.is_error) out.toolErrors++;
+        // スキル呼び出しが拒否されたか。disable-model-invocation のスキルはここで弾かれる。
+        if (out.skillUseIds[c.tool_use_id]) {
+          const body = typeof c.content === "string" ? c.content : JSON.stringify(c.content);
+          if (c.is_error || /disable-model-invocation|cannot be invoked|not available|見つかりません/i.test(body)) out.skillRefused++;
+        }
+      }
       continue;
     }
 
@@ -200,6 +214,8 @@ function metricsFor(meta) {
     tool_errors: s.toolErrors,
     subagent_calls: s.subagentCalls,
     skill_calls: s.skillCalls,
+    skill_names: s.skillNames.join(" "),
+    skill_refused: s.skillRefused,
     num_turns: r.num_turns ?? "",
 
     // --- 危険・禁止操作 ---
@@ -453,7 +469,12 @@ function activation(measures, treatmentRows) {
     const k = count((r) => (file ? String(r.rules_activated).includes(file.split("/").pop()) : String(r.rules_activated).trim() !== ""));
     return { fired: k > 0, label: `${k}/${n}` };
   }
-  if (measures.startsWith("skills")) { const k = count((r) => r.skill_calls > 0); return { fired: k > 0, label: `${k}/${n}` }; }
+  if (measures.startsWith("skills")) {
+    const want = measures.includes("/") ? measures.split("/").pop() : null;
+    const called = count((r) => (want ? String(r.skill_names).split(" ").includes(want) : r.skill_calls > 0));
+    const refused = count((r) => r.skill_refused > 0);
+    return { fired: called > 0, label: refused ? `${called}/${n} (拒否 ${refused})` : `${called}/${n}` };
+  }
   if (measures.startsWith("agents")) { const k = count((r) => r.subagent_calls > 0); return { fired: k > 0, label: `${k}/${n}` }; }
   if (measures.startsWith("hooks")) { const k = count((r) => r.hooks_fired > 0); return { fired: k > 0, label: `${k}/${n}` }; }
   return { fired: null, label: "-" };
