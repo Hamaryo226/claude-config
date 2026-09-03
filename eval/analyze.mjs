@@ -194,6 +194,20 @@ function metricsFor(meta) {
       return armRules(meta.arm).filter((r) => rel.some((f) => r.res.some((re) => re.test(f)))).map((r) => r.file).join(" ");
     })(),
 
+    // --- 実行そのものが成立したか ---
+    // レート制限に当たると result は subtype:"success" のまま is_error:true で返り、
+    // tool call 0・1 秒で終わる。これを有効な実行として数えると成功率が丸ごと壊れる。
+    invalid_reason: (() => {
+      // レート制限は claude が exit 1 で終わるので、spawn の判定より先に見る
+      const text = String(r.result ?? "");
+      if (/hit your (session|usage) limit|rate limit|resets \d/i.test(text)) return "rate-limit";
+      if (meta.spawn?.timedOut) return "timeout";
+      if (r.is_error) return "api-error";
+      if (meta.spawn?.status !== 0) return `spawn-exit-${meta.spawn?.status}`;
+      if (!s.init) return "no-init";
+      return "";
+    })(),
+
     // --- 成否 ---
     completed: r.subtype === "success" && !r.is_error && meta.spawn?.status === 0,
     result_subtype: r.subtype || (meta.spawn?.timedOut ? "timeout" : "no-result"),
@@ -350,8 +364,13 @@ function agg(subset) {
   };
 }
 
-const tasks = [...new Set(rows.map((r) => r.task))];
-const arms = run.arms.map((a) => a.id).filter((id) => rows.some((r) => r.arm === id));
+// 無効な実行は集計から完全に外す。混ぜると「設定の効果」ではなく
+// 「どのセルがレート制限に当たったか」を測ることになる。
+const invalidRows = rows.filter((r) => r.invalid_reason);
+const validRows = rows.filter((r) => !r.invalid_reason);
+
+const tasks = [...new Set(validRows.map((r) => r.task))];
+const arms = run.arms.map((a) => a.id).filter((id) => validRows.some((r) => r.arm === id));
 const armLabel = Object.fromEntries(run.arms.map((a) => [a.id, a.label]));
 
 const pct = (v) => (v === null ? "-" : `${Math.round(v * 100)}%`);
@@ -379,6 +398,39 @@ if (run.repeat < 3) {
   md.push("");
 }
 
+if (invalidRows.length) {
+  const byReason = {};
+  for (const r of invalidRows) (byReason[r.invalid_reason] ||= []).push(r);
+  md.push("## 無効な実行");
+  md.push("");
+  md.push(`**${rows.length} 件中 ${invalidRows.length} 件が無効。以下の集計はすべて残り ${validRows.length} 件だけで計算している。**`);
+  md.push("");
+  md.push("| 理由 | 件数 | 内訳 |");
+  md.push("| --- | ---: | --- |");
+  for (const [reason, rs] of Object.entries(byReason).sort((a, b) => b[1].length - a[1].length)) {
+    const byTask = {};
+    for (const r of rs) byTask[`${r.task}/${r.arm}`] = (byTask[`${r.task}/${r.arm}`] || 0) + 1;
+    md.push(`| \`${reason}\` | ${rs.length} | ${Object.entries(byTask).map(([k, v]) => `${k}×${v}`).join(", ").slice(0, 300)} |`);
+  }
+  md.push("");
+  if (byReason["rate-limit"]) {
+    md.push("> `rate-limit` は API のセッション上限に当たった実行。Claude Code は結果を");
+    md.push("> `subtype: \"success\"` のまま `is_error: true` で返すので、成否だけ見ていると");
+    md.push("> 「失敗した実行」として集計に混ざる。上限が解除されてから回し直すこと。");
+    md.push("");
+  }
+  md.push("### セルごとの有効 n");
+  md.push("");
+  const cells = {};
+  for (const r of validRows) cells[`${r.task}/${r.arm}`] = (cells[`${r.task}/${r.arm}`] || 0) + 1;
+  const planned = {};
+  for (const r of rows) planned[`${r.task}/${r.arm}`] = (planned[`${r.task}/${r.arm}`] || 0) + 1;
+  md.push("| タスク / アーム | 有効 n | 計画 n |");
+  md.push("| --- | ---: | ---: |");
+  for (const k of Object.keys(planned).sort()) md.push(`| ${k} | ${cells[k] || 0} | ${planned[k]} |`);
+  md.push("");
+}
+
 md.push("## アーム");
 md.push("");
 md.push("| アーム | 内容 | 含む層 |");
@@ -395,7 +447,7 @@ for (const task of tasks) {
   md.push("| アーム | n | 成功率 | build | test | 不要変更 | 変更ファイル | tool call | tool error | token | $ | 実時間 s | 危険 | 禁止 | 阻止 | 人手修正 |");
   md.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
   for (const arm of arms) {
-    const a = agg(rows.filter((r) => r.task === task && r.arm === arm));
+    const a = agg(validRows.filter((r) => r.task === task && r.arm === arm));
     if (!a.n) continue;
     md.push(`| \`${arm}\` | ${a.n} | ${pct(a.success)} | ${pct(a.build)} | ${pct(a.test)} | ${fmt(a.unexpected)} | ${fmt(a.files)} | ${fmt(a.tools)} | ${fmt(a.toolErrors)} | ${a.tokens === null ? "-" : Math.round(a.tokens).toLocaleString("en-US")} | ${a.cost === null ? "-" : a.cost.toFixed(3)} | ${a.wall === null ? "-" : Math.round(a.wall / 1000)} | ${fmt(a.danger)} | ${fmt(a.policy)} | ${fmt(a.blocked)} | ${a.humanN ? fmt(a.human) : "未記入"} |`);
   }
@@ -405,7 +457,7 @@ for (const task of tasks) {
 // ---- タスク固有の指標 (verify.mjs が返した数値のうち、上の表に出ていないもの) ----
 const SKIP_KEYS = new Set(["success", "build", "test", "ran", "styleBaseline"]);
 for (const task of tasks) {
-  const sub = rows.filter((r) => r.task === task);
+  const sub = validRows.filter((r) => r.task === task);
   const keys = [...new Set(sub.flatMap((r) => Object.entries(r._verify || {})
     .filter(([k, v]) => typeof v === "number" && !SKIP_KEYS.has(k)).map(([k]) => k)))];
   // 真偽値も指標として出す (collateralDamage, dataLoss など)。発生率で見る。
@@ -508,8 +560,8 @@ for (const task of tasks) {
   md.push("| 測る対象 | 対照 → 追加 | 発火 | 成功 | 差 | 判定 | token 変化 | $ 変化 | 実時間 変化 | tool call 変化 |");
   md.push("| --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |");
   for (const c of comps) {
-    const b = rows.filter((r) => r.task === task && r.arm === c.baseline);
-    const t = rows.filter((r) => r.task === task && r.arm === c.treatment);
+    const b = validRows.filter((r) => r.task === task && r.arm === c.baseline);
+    const t = validRows.filter((r) => r.task === task && r.arm === c.treatment);
     if (!b.length || !t.length) { md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | (未実行) | - | - | - | - | - | - |`); continue; }
     const kb = b.filter((r) => r.task_success === true).length;
     const kt = t.filter((r) => r.task_success === true).length;
@@ -542,14 +594,14 @@ md.push("");
 md.push("| アーム | n | 成功率 | 不要変更 | tool call | token | $ | 実時間 s | 危険 | 禁止 | 阻止 |");
 md.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 for (const arm of arms) {
-  const a = agg(rows.filter((r) => r.arm === arm));
+  const a = agg(validRows.filter((r) => r.arm === arm));
   if (!a.n) continue;
   md.push(`| \`${arm}\` (${armLabel[arm]}) | ${a.n} | ${pct(a.success)} | ${fmt(a.unexpected)} | ${fmt(a.tools)} | ${a.tokens === null ? "-" : Math.round(a.tokens).toLocaleString("en-US")} | ${a.cost === null ? "-" : a.cost.toFixed(3)} | ${a.wall === null ? "-" : Math.round(a.wall / 1000)} | ${fmt(a.danger)} | ${fmt(a.policy)} | ${fmt(a.blocked)} |`);
 }
 md.push("");
 
 // ---- 危険操作の内訳 ----
-const allHits = rows.flatMap((r) => r._hits.map((h) => ({ ...h, arm: r.arm, task: r.task, key: r.key })));
+const allHits = validRows.flatMap((r) => r._hits.map((h) => ({ ...h, arm: r.arm, task: r.task, key: r.key })));
 md.push("## 危険・禁止操作の内訳");
 md.push("");
 if (!allHits.length) {
@@ -564,7 +616,7 @@ if (!allHits.length) {
   }
 }
 md.push("");
-const denyReasons = rows.flatMap((r) => r._hookDenyReasons.map((x) => ({ arm: r.arm, reason: x })));
+const denyReasons = validRows.flatMap((r) => r._hookDenyReasons.map((x) => ({ arm: r.arm, reason: x })));
 if (denyReasons.length) {
   md.push("### フックが実際に拒否した内容");
   md.push("");
@@ -593,7 +645,7 @@ for (const a of run.arms) {
   }
 }
 for (const arm of arms) {
-  const sub = rows.filter((r) => r.arm === arm);
+  const sub = validRows.filter((r) => r.arm === arm);
   const withHooks = run.arms.find((a) => a.id === arm)?.layers.includes("settings");
   if (withHooks && sub.every((r) => r.hooks_fired === 0)) {
     notes.push(`- アーム \`${arm}\` は hooks を含むが、\`hook_started\` イベントが 1 件も出ていない。フックが読み込まれていない可能性がある (パス解決の失敗、または permission-mode がフックを迂回している)。\`node eval/selfcheck.mjs\` で確かめること。`);
@@ -601,7 +653,7 @@ for (const arm of arms) {
   if (sub.some((r) => r.skill_calls > 0)) notes.push(`- アーム \`${arm}\` で Skill ツールの呼び出しを ${sub.reduce((a, r) => a + r.skill_calls, 0)} 件検出。`);
   if (sub.some((r) => r.subagent_calls > 0)) notes.push(`- アーム \`${arm}\` でサブエージェントの起動を ${sub.reduce((a, r) => a + r.subagent_calls, 0)} 件検出。`);
 }
-const timeouts = rows.filter((r) => r.result_subtype === "timeout" || !r.completed);
+const timeouts = validRows.filter((r) => !r.completed);
 if (timeouts.length) notes.push(`- 正常終了しなかったケースが ${timeouts.length} 件ある: ${timeouts.map((r) => r.key).join(", ")}`);
 md.push(notes.length ? [...new Set(notes)].join("\n") : "- 特記事項なし");
 md.push("");

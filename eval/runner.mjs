@@ -213,6 +213,9 @@ function copyCredentials(destDir) {
 // ---------------------------------------------------------------- 作業コピーの用意
 
 function materializeWorkspace(task, wsDir) {
+  // 再実行 (--resume でレート制限に当たったケースを回し直すときなど) に備えて必ず作り直す。
+  // 残った作業コピーの上に fixture を重ねると、setup.mjs が同じコミットを二度作って落ちる。
+  rmSync(wsDir, { recursive: true, force: true });
   mkdirSync(wsDir, { recursive: true });
   cpSync(join(task.assetDir, "fixture"), wsDir, { recursive: true });
 
@@ -332,8 +335,17 @@ function runOne({ task, arm, rep, opts, configDir, runDir }) {
     }
   }
 
+  // レート制限に当たると claude は exit 1 + 1 秒で返る。これを見逃すと
+  // 「失敗した実行」が大量に積まれ、集計が丸ごと壊れる。
+  let resultText = "";
+  for (const line of (r.stdout || "").split("\n")) {
+    if (!line.includes('"type":"result"')) continue;
+    try { resultText = String(JSON.parse(line).result ?? ""); } catch { /* 壊れた行は無視 */ }
+  }
+  const rateLimited = /hit your (session|usage) limit|rate limit/i.test(resultText);
+
   const meta = {
-    key, task: task.id, arm: arm.id, rep, sessionId, baselineSha,
+    key, task: task.id, arm: arm.id, rep, sessionId, baselineSha, rateLimited, resultText: resultText.slice(0, 300),
     spawn: { status: r.status, signal: r.signal, timedOut: r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM", error: r.error ? String(r.error.message) : null },
     wallMs,
     workspace: diff,
@@ -476,24 +488,48 @@ function main() {
   const metas = [];
   let done = 0;
   let skipped = 0;
+  let rateLimitHits = 0;
   for (const { task, arm, rep } of plan) {
     done++;
     const key = `${task.id}__${arm.id}__r${rep}`;
     const metaPath = join(runDir, "cases", key, "meta.json");
     if (opts.resume && existsSync(metaPath)) {
-      metas.push(JSON.parse(readFileSync(metaPath, "utf8")));
-      skipped++;
-      continue;
+      const prev = JSON.parse(readFileSync(metaPath, "utf8"));
+      // レート制限に当たった実行は「済み」ではない。回し直す。
+      const wasRateLimited = prev.rateLimited === true || (prev.rateLimited === undefined && (() => {
+        const sp = join(runDir, "cases", key, "stream.jsonl");
+        if (!existsSync(sp)) return false;
+        return /hit your (session|usage) limit|rate limit/i.test(readFileSync(sp, "utf8"));
+      })());
+      if (!wasRateLimited) { metas.push(prev); skipped++; continue; }
     }
     log(`\n[${done}/${plan.length}] ${key}`);
-    metas.push(runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir }));
+    const meta = runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir });
+    metas.push(meta);
+    if (meta.rateLimited) {
+      rateLimitHits++;
+      // 上限に当たったら回し続けても無駄。3 連続で当たったら諦めて、ここまでを残す。
+      if (rateLimitHits >= 3) {
+        log(`\nレート制限に連続で当たったので中断する: ${meta.resultText}`);
+        log(`上限が解除されてから、同じ --out を指定して --resume で続きから回すこと。`);
+        break;
+      }
+    } else rateLimitHits = 0;
     // 途中で落ちても、そこまでの分を analyze.mjs に食わせられるようにする
     writeFileSync(join(runDir, "cases.partial.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
   }
   if (skipped) log(`\n--resume: ${skipped} 件は既存の結果を再利用した`);
 
   writeFileSync(join(runDir, "cases.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
-  const finished = { ...conditions, finishedAt: new Date().toISOString(), caseCount: metas.length };
+  const aborted = metas.length < plan.length;
+  const finished = {
+    ...conditions,
+    finishedAt: new Date().toISOString(),
+    caseCount: metas.length,
+    aborted,
+    abortReason: aborted ? "レート制限に連続で当たったため中断" : null,
+    rateLimitedCount: metas.filter((m) => m.rateLimited).length,
+  };
   writeFileSync(join(runDir, "run.json"), JSON.stringify(finished, null, 2) + "\n");
 
   log(`\n完了。${metas.length} 件。`);
