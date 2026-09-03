@@ -1,0 +1,35 @@
+{
+  "id": "interval-merge",
+  "title": "複数ファイルにまたがるバグを直す",
+  "summary": "6 件中 4 件が落ちる。原因は 2 ファイルに分かれた 3 つの独立したバグで、1 箇所直しても緑にならない。片方を素朴に直すともう片方が壊れる罠を仕込んである。",
+  "exercises": [
+    "CLAUDE.md",
+    "rules/web.md"
+  ],
+  "expectedFiles": [
+    "src/merge.js",
+    "src/schedule.js"
+  ],
+  "expectedFilesNote": "テストは正しい。書き換えたら不正解。",
+  "timeoutSecHint": 900,
+  "arms": [
+    "a0-bare",
+    "a1-claudemd",
+    "a2-rules"
+  ],
+  "armsWhy": "Skills / Agents / Hooks はコードを直す手順に関与しない。",
+  "comparisons": [
+    {
+      "baseline": "a0-bare",
+      "treatment": "a1-claudemd",
+      "measures": "CLAUDE.md",
+      "why": "「直したと報告する前に必ず確認する」が完遂率を上げるか"
+    },
+    {
+      "baseline": "a1-claudemd",
+      "treatment": "a2-rules",
+      "measures": "rules/web.md",
+      "why": "TypeScript / Web の規約が実装の質に効くか"
+    }
+  ]
+}

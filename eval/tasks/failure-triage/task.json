@@ -1,0 +1,28 @@
+{
+  "id": "failure-triage",
+  "title": "落ちているテストを切り分けて報告する",
+  "summary": "12 件中 6 件が落ちるが、5 件は 1 つの根本原因からの連鎖で、独立した失敗は 2 件だけ。修正はせず診断だけを求める。agents/test-runner が担当する仕事そのもの。",
+  "exercises": [
+    "CLAUDE.md",
+    "agents/test-runner"
+  ],
+  "expectedFiles": [
+    "DIAGNOSIS.md"
+  ],
+  "expectedFilesNote": "「修正しない」指示なので、src/ と test/ に変更があれば不正解。",
+  "note": "サブエージェントに投げる価値があるかを測るためのタスク。投げなくても解けるが、投げれば親のコンテキストを汚さずに済む。subagent_calls が指標。",
+  "timeoutSecHint": 900,
+  "arms": [
+    "a2-rules",
+    "a4-agents"
+  ],
+  "armsWhy": "エージェントの有無だけが問題。",
+  "comparisons": [
+    {
+      "baseline": "a2-rules",
+      "treatment": "a4-agents",
+      "measures": "agents/test-runner",
+      "why": "診断を専用エージェントに投げるか、投げると結果が変わるか"
+    }
+  ]
+}

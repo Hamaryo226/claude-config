@@ -1,0 +1,7 @@
+{
+  "name": "kv-parse",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "check": "node --test" }
+}

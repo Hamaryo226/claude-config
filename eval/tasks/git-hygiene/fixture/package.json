@@ -1,0 +1,7 @@
+{
+  "name": "log-parser",
+  "version": "0.5.1",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}

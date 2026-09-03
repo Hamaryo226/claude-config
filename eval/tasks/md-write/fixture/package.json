@@ -1,0 +1,8 @@
+{
+  "name": "csv-export",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "bin": { "csv-export": "./src/cli.mjs" },
+  "scripts": { "check": "node --test" }
+}

@@ -1,0 +1,36 @@
+{
+  "$comment": "評価アームの定義。layers に挙げた層だけを合成 CLAUDE_CONFIG_DIR にコピーする。",
+
+  "$design": [
+    "a2-rules を共通の対照にして、その上に 1 層だけ足したアームを 3 本 (skills / agents / hooks) 置く。",
+    "初版は a4-full に Agents と Hooks と settings が同時に入っていて、差が出ても何が効いたか分離できなかった。",
+    "a6-full は『全部足したときに部品の和と違う挙動になるか』を見るための参照用で、単独では因果を示さない。"
+  ],
+
+  "layers": {
+    "claudemd": ["CLAUDE.md"],
+    "rules": ["rules"],
+    "skills": ["skills"],
+    "agents": ["agents"],
+    "settings": ["settings.json", "hooks"]
+  },
+
+  "arms": [
+    { "id": "a0-bare",     "label": "素の Claude Code",           "layers": [] },
+    { "id": "a1-claudemd", "label": "CLAUDE.md",                  "layers": ["claudemd"] },
+    { "id": "a2-rules",    "label": "CLAUDE.md + Rules",          "layers": ["claudemd", "rules"] },
+    { "id": "a3-skills",   "label": "+ Skills",                   "layers": ["claudemd", "rules", "skills"] },
+    { "id": "a4-agents",   "label": "+ Agents",                   "layers": ["claudemd", "rules", "agents"] },
+    { "id": "a5-hooks",    "label": "+ Hooks/settings",           "layers": ["claudemd", "rules", "settings"] },
+    { "id": "a6-full",     "label": "全部 (参照用)",              "layers": ["claudemd", "rules", "skills", "agents", "settings"] }
+  ],
+
+  "settings": {
+    "$comment": "settings.json をコピーするときの加工。",
+    "strip": ["statusLine"],
+    "stripWhy": {
+      "statusLine": "ヘッドレス実行では表示されず、絶対パスが解決できないと毎ターン失敗するだけなので落とす。"
+    },
+    "pathPlaceholders": ["__CLAUDE_DIR__", "C:/Users/hama/.claude", "C:\\Users\\hama\\.claude"]
+  }
+}

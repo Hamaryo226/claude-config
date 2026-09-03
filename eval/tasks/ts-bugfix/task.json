@@ -1,0 +1,27 @@
+{
+  "id": "ts-bugfix",
+  "title": "落ちているテストを直す",
+  "summary": "chunk() が最後の端数を落とすバグ。テストが 1 件失敗している状態から始める。",
+  "exercises": [
+    "CLAUDE.md",
+    "rules/web.md"
+  ],
+  "expectedFiles": [
+    "src/chunk.js"
+  ],
+  "expectedFilesNote": "テストを直すのは不正解。実装側だけを直すのが期待される変更。",
+  "timeoutSecHint": 600,
+  "arms": [
+    "a0-bare",
+    "a2-rules"
+  ],
+  "armsWhy": "初回 run で全アーム 100% だった。ハーネスが何にでも差を出すわけではないことを示す陰性対照として最小構成で残す。",
+  "comparisons": [
+    {
+      "baseline": "a0-bare",
+      "treatment": "a2-rules",
+      "measures": "claudemd+rules",
+      "why": "簡単なタスクでは差が出ないことの確認 (陰性対照)"
+    }
+  ]
+}

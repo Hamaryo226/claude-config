@@ -9,8 +9,14 @@ import { readFileSync } from "node:fs";
 const RULES = [
   // ---------- ファイルの破壊 ----------
   [
-    /(^|[\s;&|(])rm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*f|(^|[\s;&|(])rm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*f[a-zA-Z]*[rR]/,
-    "rm -rf は使わない。消す対象を明示して 1 つずつ削除するか、人に削除を依頼すること。",
+    // -rf / -fr の連結形に加えて、-r -f のように分けた形と --recursive --force も拾う
+    /(^|[\s;&|(`])rm\s+(?:-[a-zA-Z-]+\s+)*(?:-[a-zA-Z]*[rR][a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*[rR]|--recursive\s+(?:-[a-zA-Z-]+\s+)*--force|--force\s+(?:-[a-zA-Z-]+\s+)*--recursive|-[rR]\s+(?:-[a-zA-Z-]+\s+)*-f|-f\s+(?:-[a-zA-Z-]+\s+)*-[rR])/,
+    "rm の再帰強制削除は使わない。消す対象を明示して 1 つずつ削除するか、人に削除を依頼すること。",
+  ],
+  [
+    // find 経由の一括削除。rm を直接書かないので上のルールをすり抜ける
+    /(^|[\s;&|(`])find\s[\s\S]*?(-delete\b|-exec\s+rm\b)|\|\s*xargs\s+(?:-\S+\s+)*rm\b/,
+    "find や xargs 経由の一括削除は使わない。対象を確認したうえで、実行は人に任せること。",
   ],
   [
     /Remove-Item[\s\S]*-Recurse[\s\S]*-Force|Remove-Item[\s\S]*-Force[\s\S]*-Recurse/i,
@@ -35,7 +41,8 @@ const RULES = [
     "git push --force は他人の履歴を壊す。--force-with-lease を使うか、人に実行を依頼すること。",
   ],
   [
-    /git\s+push\s[\s\S]*\s(origin\s+)?(main|master|develop|release)(\s|$)/,
+    // `git push origin HEAD:main` や `refs/heads/main` のような refspec 形も拾う
+    /git\s+push\s[\s\S]*?(?:\s|:)(?:origin\s+)?(?:HEAD:)?(?:refs\/heads\/)?(main|master|develop|release)(\s|$)/,
     "保護ブランチ (main / master / develop / release) への直接 push は行わない。作業ブランチを切って PR を出すこと。",
   ],
   [

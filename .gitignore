@@ -36,6 +36,22 @@ skills/*
 !skills/onboard/
 !skills/release/
 
+# --- 設定の評価基盤 ---
+# eval/ は自作のスクリプトと fixture だけ。実行結果 (eval/runs/) は
+# 作業コピーと生ログを丸ごと含むので追跡しない。
+!eval/
+eval/*
+!eval/README.md
+!eval/*.mjs
+!eval/arms.json
+!eval/profiles/
+!eval/tasks/
+
+# 実行結果。まとめ (run.json / results.csv / report.md) だけ追跡し、
+# 生ログと作業コピー (eval/runs/) は追跡しない。作業対象のコードが丸ごと入るため。
+!eval/results/
+eval/runs/
+
 # --- 会社 PC 用プロファイル (テンプレート。この PC では動かない) ---
 # work/ 配下は自作ファイルしか置かないが、万一 Claude Code の実行に使われた場合に
 # セッション履歴や認証情報が混ざらないよう、ここでもホワイトリストで絞る。
