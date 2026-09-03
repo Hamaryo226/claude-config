@@ -34,6 +34,7 @@ skills/*
 !skills/commit/
 !skills/pr/
 !skills/onboard/
+!skills/project-analyze/
 !skills/release/
 
 # --- 設定の評価基盤 ---
@@ -81,6 +82,7 @@ work/skills/*
 !work/skills/commit/
 !work/skills/pr/
 !work/skills/onboard/
+!work/skills/project-analyze/
 !work/skills/release/
 
 # --- 念のための明示的な除外 ---

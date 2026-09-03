@@ -48,6 +48,7 @@ Claude Code の設定を管理するリポジトリ。個人開発用と会社�
 - `/commit` — 変更を論理単位に分けて日本語でコミット (push はしない)
 - `/pr` — 日本語の PR 本文を組み立てて確認後に `gh pr create`
 - `/onboard` — リポジトリに `CLAUDE.md` と `.claude/settings.json` の雛形を作る
+- `/project-analyze` — 既存プロジェクトを解析し、必要な設定 (CLAUDE.md / rules / skills / agents / settings) だけを生成する
 - `/release` — バージョン更新・リリースノート・タグ作成
 
 ### hooks
