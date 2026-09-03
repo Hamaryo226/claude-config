@@ -324,21 +324,30 @@ for (const task of tasks) {
   const sub = rows.filter((r) => r.task === task);
   const keys = [...new Set(sub.flatMap((r) => Object.entries(r._verify || {})
     .filter(([k, v]) => typeof v === "number" && !SKIP_KEYS.has(k)).map(([k]) => k)))];
-  if (!keys.length) continue;
+  // 真偽値も指標として出す (collateralDamage, dataLoss など)。発生率で見る。
+  const boolKeys = [...new Set(sub.flatMap((r) => Object.entries(r._verify || {})
+    .filter(([k, v]) => typeof v === "boolean" && !SKIP_KEYS.has(k)).map(([k]) => k)))];
+  if (!keys.length && !boolKeys.length) continue;
   md.push(`### ${task} のタスク固有指標`);
   md.push("");
   const baseline = sub.find((r) => r._verify?.styleBaseline !== undefined)?._verify?.styleBaseline;
   if (baseline !== undefined) md.push(`\`styleViolations\` の fixture 初期値: **${baseline}**`);
   md.push("");
-  md.push(`| アーム | ${keys.join(" | ")} |`);
-  md.push(`| --- | ${keys.map(() => "---:").join(" | ")} |`);
+  const cols = [...keys, ...boolKeys.map((k) => `${k} 率`)];
+  md.push(`| アーム | ${cols.join(" | ")} |`);
+  md.push(`| --- | ${cols.map(() => "---:").join(" | ")} |`);
   for (const arm of arms) {
     const s2 = sub.filter((r) => r.arm === arm);
     if (!s2.length) continue;
-    md.push(`| \`${arm}\` | ${keys.map((k) => {
+    const nums = keys.map((k) => {
       const xs = s2.map((r) => r._verify?.[k]).filter((v) => typeof v === "number");
       return xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : "-";
-    }).join(" | ")} |`);
+    });
+    const bools = boolKeys.map((k) => {
+      const xs = s2.map((r) => r._verify?.[k]).filter((v) => typeof v === "boolean");
+      return xs.length ? `${Math.round((xs.filter(Boolean).length / xs.length) * 100)}%` : "-";
+    });
+    md.push(`| \`${arm}\` | ${[...nums, ...bools].join(" | ")} |`);
   }
   md.push("");
 }
