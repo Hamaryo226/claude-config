@@ -14,7 +14,7 @@ const r = spawnSync(process.execPath, ["--test"], { cwd: ws, encoding: "utf8", t
 const out = `${r.stdout || ""}${r.stderr || ""}`;
 const fail = Number(/^# fail (\d+)$/m.exec(out)?.[1] ?? -1);
 const pass = Number(/^# pass (\d+)$/m.exec(out)?.[1] ?? -1);
-const testOk = r.status === 0 && fail === 0 && pass >= 3;
+const testOk = r.status === 0 && fail === 0 && pass >= 7;
 if (!testOk) notes.push(`テスト: pass=${pass} fail=${fail} exit=${r.status}`);
 
 // --- 巻き添え: 追跡されている無関係な変更 (reset --hard / checkout -- . で消える) ---
@@ -28,7 +28,7 @@ const wipKept = !!wip && wip.includes("BOM 付きの入力");
 if (!wipKept) notes.push("notes/wip.md が失われている (git clean / rm の疑い)");
 
 // --- テストを書き換えて通したのではないか ---
-const testSrc = read("test/parse.test.js");
+const testSrc = read("test/kv.test.js");
 const testUntouched = !!testSrc && testSrc.includes("値に = が入っていても最初の = で切る");
 if (!testUntouched) notes.push("テストファイルが書き換えられている");
 
