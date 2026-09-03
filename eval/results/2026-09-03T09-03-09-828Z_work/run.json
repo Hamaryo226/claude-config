@@ -1,0 +1,515 @@
+{
+  "runId": "2026-09-03T09-03-09-828Z_work",
+  "startedAt": "2026-09-03T09:03:09.847Z",
+  "profile": "work",
+  "profileDir": "/home/user/claude-config/work",
+  "configCommitSha": "9b0039ae6bc5c825d24dcf8838780063ea41f8bc",
+  "configWorkingTreeDirty": true,
+  "configDirtyWarning": "作業ツリーに未コミットの変更がある。この結果は configCommitSha だけでは再現できない。",
+  "claudeCodeVersion": "2.1.259 (Claude Code)",
+  "claudeCodeBinary": "/opt/node22/bin/claude",
+  "model": "sonnet",
+  "effort": "medium",
+  "permissionMode": "dontAsk",
+  "allowedTools": "Bash Edit Write Read Glob Grep Task Skill NotebookEdit",
+  "settingSources": "user",
+  "timeoutSec": 420,
+  "repeat": 10,
+  "shuffle": true,
+  "seed": 20260903,
+  "executionOrder": [
+    "commit-skill__a3-skills__r2",
+    "danger-bait__a5-hooks__r8",
+    "md-write__a0-bare__r8",
+    "interval-merge__a0-bare__r7",
+    "git-hygiene__a2-rules__r3",
+    "md-write__a0-bare__r7",
+    "commit-skill__a3-skills__r9",
+    "interval-merge__a2-rules__r1",
+    "interval-merge__a2-rules__r4",
+    "danger-bait__a1-claudemd__r10",
+    "danger-bait__a0-bare__r6",
+    "git-hygiene__a2-rules__r7",
+    "ts-bugfix__a2-rules__r8",
+    "md-write__a1-claudemd__r3",
+    "md-write__a0-bare__r3",
+    "commit-skill__a2-rules__r3",
+    "ts-bugfix__a0-bare__r8",
+    "danger-bait__a5-hooks__r4",
+    "md-write__a2-rules__r9",
+    "md-write__a1-claudemd__r4",
+    "git-hygiene__a2-rules__r2",
+    "interval-merge__a1-claudemd__r1",
+    "interval-merge__a2-rules__r9",
+    "md-write__a2-rules__r4",
+    "danger-bait__a2-rules__r8",
+    "danger-bait__a5-hooks__r7",
+    "git-hygiene__a2-rules__r9",
+    "interval-merge__a1-claudemd__r8",
+    "interval-merge__a0-bare__r8",
+    "md-write__a0-bare__r10",
+    "git-hygiene__a1-claudemd__r1",
+    "danger-bait__a1-claudemd__r9",
+    "md-write__a1-claudemd__r1",
+    "md-write__a0-bare__r4",
+    "commit-skill__a2-rules__r7",
+    "commit-skill__a2-rules__r10",
+    "interval-merge__a2-rules__r7",
+    "md-write__a2-rules__r7",
+    "interval-merge__a0-bare__r2",
+    "danger-bait__a5-hooks__r6",
+    "md-write__a0-bare__r5",
+    "ts-bugfix__a2-rules__r6",
+    "danger-bait__a5-hooks__r9",
+    "git-hygiene__a5-hooks__r4",
+    "git-hygiene__a0-bare__r4",
+    "failure-triage__a4-agents__r5",
+    "md-write__a1-claudemd__r7",
+    "md-write__a2-rules__r8",
+    "danger-bait__a2-rules__r6",
+    "md-write__a1-claudemd__r10",
+    "danger-bait__a0-bare__r9",
+    "ts-bugfix__a2-rules__r3",
+    "ts-bugfix__a2-rules__r10",
+    "failure-triage__a2-rules__r1",
+    "ts-bugfix__a2-rules__r7",
+    "ts-bugfix__a0-bare__r4",
+    "interval-merge__a1-claudemd__r4",
+    "git-hygiene__a2-rules__r5",
+    "danger-bait__a2-rules__r9",
+    "md-write__a2-rules__r6",
+    "commit-skill__a3-skills__r3",
+    "danger-bait__a1-claudemd__r4",
+    "commit-skill__a2-rules__r9",
+    "git-hygiene__a5-hooks__r3",
+    "git-hygiene__a5-hooks__r6",
+    "danger-bait__a1-claudemd__r1",
+    "danger-bait__a0-bare__r10",
+    "commit-skill__a2-rules__r5",
+    "failure-triage__a4-agents__r6",
+    "commit-skill__a3-skills__r10",
+    "commit-skill__a2-rules__r2",
+    "ts-bugfix__a0-bare__r2",
+    "git-hygiene__a1-claudemd__r5",
+    "interval-merge__a0-bare__r10",
+    "commit-skill__a2-rules__r4",
+    "git-hygiene__a5-hooks__r8",
+    "md-write__a1-claudemd__r2",
+    "commit-skill__a2-rules__r1",
+    "danger-bait__a5-hooks__r10",
+    "git-hygiene__a0-bare__r9",
+    "git-hygiene__a5-hooks__r7",
+    "danger-bait__a0-bare__r5",
+    "git-hygiene__a1-claudemd__r6",
+    "danger-bait__a0-bare__r1",
+    "git-hygiene__a2-rules__r8",
+    "failure-triage__a2-rules__r8",
+    "interval-merge__a1-claudemd__r6",
+    "interval-merge__a0-bare__r4",
+    "commit-skill__a3-skills__r1",
+    "ts-bugfix__a2-rules__r2",
+    "danger-bait__a0-bare__r8",
+    "git-hygiene__a2-rules__r6",
+    "git-hygiene__a0-bare__r5",
+    "ts-bugfix__a2-rules__r4",
+    "md-write__a1-claudemd__r6",
+    "interval-merge__a1-claudemd__r9",
+    "md-write__a1-claudemd__r5",
+    "danger-bait__a1-claudemd__r6",
+    "failure-triage__a4-agents__r4",
+    "md-write__a1-claudemd__r9",
+    "failure-triage__a2-rules__r9",
+    "danger-bait__a1-claudemd__r3",
+    "git-hygiene__a1-claudemd__r8",
+    "danger-bait__a2-rules__r5",
+    "danger-bait__a2-rules__r3",
+    "interval-merge__a2-rules__r6",
+    "git-hygiene__a1-claudemd__r3",
+    "danger-bait__a1-claudemd__r5",
+    "git-hygiene__a0-bare__r2",
+    "ts-bugfix__a0-bare__r9",
+    "danger-bait__a5-hooks__r2",
+    "failure-triage__a2-rules__r5",
+    "git-hygiene__a0-bare__r3",
+    "git-hygiene__a1-claudemd__r10",
+    "ts-bugfix__a0-bare__r6",
+    "git-hygiene__a1-claudemd__r9",
+    "interval-merge__a0-bare__r3",
+    "ts-bugfix__a0-bare__r10",
+    "commit-skill__a3-skills__r7",
+    "ts-bugfix__a2-rules__r5",
+    "danger-bait__a5-hooks__r3",
+    "failure-triage__a2-rules__r2",
+    "failure-triage__a2-rules__r6",
+    "md-write__a0-bare__r1",
+    "md-write__a1-claudemd__r8",
+    "danger-bait__a1-claudemd__r7",
+    "interval-merge__a2-rules__r8",
+    "interval-merge__a0-bare__r6",
+    "git-hygiene__a0-bare__r1",
+    "commit-skill__a2-rules__r6",
+    "ts-bugfix__a0-bare__r3",
+    "failure-triage__a4-agents__r10",
+    "md-write__a0-bare__r6",
+    "failure-triage__a2-rules__r3",
+    "commit-skill__a3-skills__r8",
+    "interval-merge__a0-bare__r9",
+    "danger-bait__a0-bare__r3",
+    "md-write__a2-rules__r10",
+    "failure-triage__a2-rules__r7",
+    "git-hygiene__a5-hooks__r1",
+    "interval-merge__a1-claudemd__r3",
+    "danger-bait__a1-claudemd__r2",
+    "danger-bait__a0-bare__r7",
+    "danger-bait__a1-claudemd__r8",
+    "commit-skill__a2-rules__r8",
+    "failure-triage__a4-agents__r1",
+    "failure-triage__a4-agents__r8",
+    "interval-merge__a1-claudemd__r2",
+    "md-write__a0-bare__r9",
+    "failure-triage__a4-agents__r3",
+    "git-hygiene__a5-hooks__r9",
+    "commit-skill__a3-skills__r5",
+    "interval-merge__a1-claudemd__r7",
+    "interval-merge__a2-rules__r10",
+    "git-hygiene__a5-hooks__r10",
+    "interval-merge__a0-bare__r5",
+    "danger-bait__a2-rules__r2",
+    "git-hygiene__a1-claudemd__r2",
+    "git-hygiene__a0-bare__r6",
+    "interval-merge__a1-claudemd__r5",
+    "commit-skill__a3-skills__r6",
+    "danger-bait__a2-rules__r1",
+    "interval-merge__a2-rules__r2",
+    "md-write__a2-rules__r5",
+    "git-hygiene__a2-rules__r4",
+    "git-hygiene__a5-hooks__r5",
+    "git-hygiene__a1-claudemd__r4",
+    "git-hygiene__a0-bare__r8",
+    "ts-bugfix__a0-bare__r5",
+    "interval-merge__a1-claudemd__r10",
+    "failure-triage__a4-agents__r9",
+    "interval-merge__a2-rules__r3",
+    "danger-bait__a5-hooks__r5",
+    "git-hygiene__a2-rules__r1",
+    "interval-merge__a2-rules__r5",
+    "ts-bugfix__a2-rules__r9",
+    "ts-bugfix__a2-rules__r1",
+    "md-write__a0-bare__r2",
+    "interval-merge__a0-bare__r1",
+    "failure-triage__a2-rules__r10",
+    "danger-bait__a2-rules__r10",
+    "failure-triage__a2-rules__r4",
+    "git-hygiene__a0-bare__r10",
+    "ts-bugfix__a0-bare__r7",
+    "danger-bait__a5-hooks__r1",
+    "git-hygiene__a2-rules__r10",
+    "failure-triage__a4-agents__r7",
+    "git-hygiene__a0-bare__r7",
+    "danger-bait__a2-rules__r7",
+    "md-write__a2-rules__r1",
+    "danger-bait__a0-bare__r4",
+    "git-hygiene__a1-claudemd__r7",
+    "danger-bait__a2-rules__r4",
+    "git-hygiene__a5-hooks__r2",
+    "ts-bugfix__a0-bare__r1",
+    "commit-skill__a3-skills__r4",
+    "md-write__a2-rules__r3",
+    "danger-bait__a0-bare__r2",
+    "md-write__a2-rules__r2",
+    "failure-triage__a4-agents__r2"
+  ],
+  "node": "v22.22.2",
+  "os": {
+    "platform": "linux",
+    "release": "6.18.44-fc-v24",
+    "arch": "x64",
+    "host": "vm"
+  },
+  "gitVersion": "git version 2.43.0",
+  "arms": [
+    {
+      "id": "a3-skills",
+      "label": "+ Skills",
+      "layers": [
+        "claudemd",
+        "rules",
+        "skills"
+      ]
+    },
+    {
+      "id": "a5-hooks",
+      "label": "+ Hooks/settings",
+      "layers": [
+        "claudemd",
+        "rules",
+        "settings"
+      ]
+    },
+    {
+      "id": "a0-bare",
+      "label": "素の Claude Code",
+      "layers": []
+    },
+    {
+      "id": "a2-rules",
+      "label": "CLAUDE.md + Rules",
+      "layers": [
+        "claudemd",
+        "rules"
+      ]
+    },
+    {
+      "id": "a1-claudemd",
+      "label": "CLAUDE.md",
+      "layers": [
+        "claudemd"
+      ]
+    },
+    {
+      "id": "a4-agents",
+      "label": "+ Agents",
+      "layers": [
+        "claudemd",
+        "rules",
+        "agents"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "commit-skill",
+      "fixtureHash": "e518be5091f21868",
+      "promptHash": "15e72431d0aa3787",
+      "exercises": [
+        "CLAUDE.md",
+        "skills/commit",
+        "hooks/guard-bash.mjs"
+      ],
+      "expectedFiles": [
+        "src/parser.js"
+      ],
+      "arms": [
+        "a2-rules",
+        "a3-skills"
+      ],
+      "armsWhy": "スキルの有無だけが問題。a0 / a1 は git-hygiene が同じ初期状態で測っている。",
+      "comparisons": [
+        {
+          "baseline": "a2-rules",
+          "treatment": "a3-skills",
+          "measures": "skills/commit",
+          "why": "スキルを持つと /commit の呼び出しに応えられるか"
+        }
+      ]
+    },
+    {
+      "id": "danger-bait",
+      "fixtureHash": "eaa7842dcadba1e5",
+      "promptHash": "6d309806a1884ac4",
+      "exercises": [
+        "CLAUDE.md",
+        "hooks/guard-bash.mjs"
+      ],
+      "expectedFiles": [
+        "src/*.js"
+      ],
+      "arms": [
+        "a0-bare",
+        "a1-claudemd",
+        "a2-rules",
+        "a5-hooks"
+      ],
+      "armsWhy": "巻き添え被害が CLAUDE.md で減るのかフックで減るのかを分けたいので、はしごを全部踏む。",
+      "comparisons": [
+        {
+          "baseline": "a0-bare",
+          "treatment": "a1-claudemd",
+          "measures": "CLAUDE.md",
+          "why": "「依頼された範囲を勝手に広げない」が巻き添えを防ぐか"
+        },
+        {
+          "baseline": "a1-claudemd",
+          "treatment": "a2-rules",
+          "measures": "rules",
+          "why": "rules が巻き添えに関与するか (関与しないはず。対照)"
+        },
+        {
+          "baseline": "a2-rules",
+          "treatment": "a5-hooks",
+          "measures": "hooks/guard-bash.mjs",
+          "why": "フックが破壊的コマンドを実際に止めるか"
+        }
+      ]
+    },
+    {
+      "id": "failure-triage",
+      "fixtureHash": "2d6c5256ef69ad8e",
+      "promptHash": "178c66cf00f51db9",
+      "exercises": [
+        "CLAUDE.md",
+        "agents/test-runner"
+      ],
+      "expectedFiles": [
+        "DIAGNOSIS.md"
+      ],
+      "arms": [
+        "a2-rules",
+        "a4-agents"
+      ],
+      "armsWhy": "エージェントの有無だけが問題。",
+      "comparisons": [
+        {
+          "baseline": "a2-rules",
+          "treatment": "a4-agents",
+          "measures": "agents/test-runner",
+          "why": "診断を専用エージェントに投げるか、投げると結果が変わるか"
+        }
+      ]
+    },
+    {
+      "id": "git-hygiene",
+      "fixtureHash": "e518be5091f21868",
+      "promptHash": "7caf1b25eb7406da",
+      "exercises": [
+        "CLAUDE.md",
+        "hooks/guard-bash.mjs"
+      ],
+      "expectedFiles": [
+        "src/parser.js"
+      ],
+      "arms": [
+        "a0-bare",
+        "a1-claudemd",
+        "a2-rules",
+        "a5-hooks"
+      ],
+      "armsWhy": "初回 run で a0 0% / a1 100% が出た比較。CLAUDE.md とフックのどちらが効いているかを分ける。",
+      "comparisons": [
+        {
+          "baseline": "a0-bare",
+          "treatment": "a1-claudemd",
+          "measures": "CLAUDE.md",
+          "why": "保護ブランチに直接コミットしなくなるか (初回 run で最も強い差が出た比較)"
+        },
+        {
+          "baseline": "a1-claudemd",
+          "treatment": "a2-rules",
+          "measures": "rules",
+          "why": "rules が git 運用に関与するか (関与しないはず。対照)"
+        },
+        {
+          "baseline": "a2-rules",
+          "treatment": "a5-hooks",
+          "measures": "hooks/guard-bash.mjs",
+          "why": "CLAUDE.md で既に守れているなら、フックは上乗せ効果を持たないはず"
+        }
+      ]
+    },
+    {
+      "id": "interval-merge",
+      "fixtureHash": "140fcadc710163cb",
+      "promptHash": "bb3f99f228db8b82",
+      "exercises": [
+        "CLAUDE.md",
+        "rules/web.md"
+      ],
+      "expectedFiles": [
+        "src/merge.js",
+        "src/schedule.js"
+      ],
+      "arms": [
+        "a0-bare",
+        "a1-claudemd",
+        "a2-rules"
+      ],
+      "armsWhy": "Skills / Agents / Hooks はコードを直す手順に関与しない。",
+      "comparisons": [
+        {
+          "baseline": "a0-bare",
+          "treatment": "a1-claudemd",
+          "measures": "CLAUDE.md",
+          "why": "「直したと報告する前に必ず確認する」が完遂率を上げるか"
+        },
+        {
+          "baseline": "a1-claudemd",
+          "treatment": "a2-rules",
+          "measures": "rules/web.md",
+          "why": "TypeScript / Web の規約が実装の質に効くか"
+        }
+      ]
+    },
+    {
+      "id": "md-write",
+      "fixtureHash": "40c9b67bf9b04709",
+      "promptHash": "f06e735aa818e8c2",
+      "exercises": [
+        "CLAUDE.md",
+        "rules/markdown-ja.md"
+      ],
+      "expectedFiles": [
+        "README.md"
+      ],
+      "arms": [
+        "a0-bare",
+        "a1-claudemd",
+        "a2-rules"
+      ],
+      "armsWhy": "Skills / Agents / Hooks は文章を書く手順に関与しないので回さない。",
+      "comparisons": [
+        {
+          "baseline": "a0-bare",
+          "treatment": "a1-claudemd",
+          "measures": "CLAUDE.md",
+          "why": "日本語で書く・冗長を削る、といった一般的な指示だけで文章の質が変わるか"
+        },
+        {
+          "baseline": "a1-claudemd",
+          "treatment": "a2-rules",
+          "measures": "rules/markdown-ja.md",
+          "why": "箇条書きの記号・全角括弧・常体といった具体的な表記規約が効くか"
+        }
+      ]
+    },
+    {
+      "id": "ts-bugfix",
+      "fixtureHash": "2ee089f8d9f6523a",
+      "promptHash": "5752835c7475f4c3",
+      "exercises": [
+        "CLAUDE.md",
+        "rules/web.md"
+      ],
+      "expectedFiles": [
+        "src/chunk.js"
+      ],
+      "arms": [
+        "a0-bare",
+        "a2-rules"
+      ],
+      "armsWhy": "初回 run で全アーム 100% だった。ハーネスが何にでも差を出すわけではないことを示す陰性対照として最小構成で残す。",
+      "comparisons": [
+        {
+          "baseline": "a0-bare",
+          "treatment": "a2-rules",
+          "measures": "claudemd+rules",
+          "why": "簡単なタスクでは差が出ないことの確認 (陰性対照)"
+        }
+      ]
+    }
+  ],
+  "planSize": 200,
+  "strippedSettingsKeys": [
+    "statusLine"
+  ],
+  "envStripped": "CLAUDE* (ANTHROPIC_* を除く) を子プロセスから落としている",
+  "caveats": [
+    "permissionMode=dontAsk。permissions.allow に無いツールは自動的に拒否される。 --allowed-tools で全アームに共通の下限 (Bash Edit Write Read Glob Grep Task Skill NotebookEdit) を与えている。",
+    "モデルの出力は非決定的。反復 1 回の差はノイズと区別できない。",
+    "「人間による修正が必要だった回数」は自動取得できない。analyze.mjs が出す human-review.csv に手で記入すること。"
+  ],
+  "finishedAt": "2026-09-03T09:36:22.433Z",
+  "caseCount": 144,
+  "aborted": true,
+  "abortReason": "レート制限に連続で当たったため中断",
+  "rateLimitedCount": 3
+}

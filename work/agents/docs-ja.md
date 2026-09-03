@@ -1,6 +1,6 @@
 ---
 name: docs-ja
-description: README・RELEASE_NOTES・docs 配下など、日本語ドキュメントの作成と更新に使う。実装とドキュメントの記述がずれていないかの点検にも向く。コードは変更しない。
+description: 複数のドキュメントを横断して書き直す、または実装とドキュメント全体のずれを洗うときに使う。コードは変更しない。**1 ファイルの一節を直すだけなら、呼ばずに直接編集した方が速い。**
 tools: Read, Grep, Glob, Edit, Write
 model: sonnet
 effort: medium
