@@ -6,11 +6,12 @@
 //
 // 使い方は eval/README.md を見ること。
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, readdirSync, chmodSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, readdirSync, chmodSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir, hostname, platform, arch, release } from "node:os";
 import { createHash, randomUUID } from "node:crypto";
+import { childProcessEnv, providerEnvironment } from "./environment.mjs";
 
 const EVAL_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_DIR = resolve(EVAL_DIR, "..");
@@ -124,17 +125,27 @@ function sha256OfDir(dir) {
   return h.digest("hex").slice(0, 16);
 }
 
-// 親セッションの状態が子プロセスへ漏れると条件が揃わないので、CLAUDE_* は原則落とす。
-// 認証系 (ANTHROPIC_*) と一般の環境変数は残す。
-const ENV_KEEP_PREFIX = ["ANTHROPIC_"];
-function childEnv(extra) {
-  const env = {};
-  for (const [k, v] of Object.entries(process.env)) {
-    if (k.startsWith("CLAUDE") && !ENV_KEEP_PREFIX.some((p) => k.startsWith(p))) continue;
-    env[k] = v;
+function sha256OfItems(baseDir, items) {
+  const h = createHash("sha256");
+  const walk = (path, rel) => {
+    const entries = readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const child = join(path, entry.name);
+      const childRel = `${rel}/${entry.name}`;
+      if (entry.isDirectory()) walk(child, childRel);
+      else if (entry.isFile()) { h.update(childRel); h.update(readFileSync(child)); }
+    }
+  };
+  for (const item of [...new Set(items)].sort()) {
+    const path = join(baseDir, item);
+    if (!existsSync(path)) { h.update(`${item}:missing`); continue; }
+    if (statSync(path).isDirectory()) walk(path, item);
+    else { h.update(item); h.update(readFileSync(path)); }
   }
-  return { ...env, ...extra };
+  return h.digest("hex").slice(0, 16);
 }
+
+const sha256OfJson = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 16);
 
 /** mulberry32。種から決まる擬似乱数。実行順を再現できるようにするためだけに使う。 */
 function rng(seed) {
@@ -161,6 +172,9 @@ function shuffled(items, seed) {
 // ---------------------------------------------------------------- アームの設定ディレクトリを組み立てる
 
 function buildArmConfig(arm, armsSpec, profileDir, destDir) {
+  // --resume 時も古い層を残さない。前回と異なる構成を上書きコピーすると、除外したはずの
+  // ファイルが残ってアーム間の差が壊れる。
+  rmSync(destDir, { recursive: true, force: true });
   mkdirSync(destDir, { recursive: true });
   const included = [];
   for (const layer of arm.layers) {
@@ -308,7 +322,7 @@ function runOne({ task, arm, rep, opts, configDir, runDir }) {
   const started = Date.now();
   const r = spawnSync("claude", args, {
     cwd: wsDir,
-    env: childEnv({ CLAUDE_CONFIG_DIR: configDir }),
+    env: childProcessEnv({ CLAUDE_CONFIG_DIR: configDir }),
     encoding: "utf8",
     input: "",
     timeout: opts.timeout * 1000,
@@ -337,15 +351,19 @@ function runOne({ task, arm, rep, opts, configDir, runDir }) {
 
   // レート制限に当たると claude は exit 1 + 1 秒で返る。これを見逃すと
   // 「失敗した実行」が大量に積まれ、集計が丸ごと壊れる。
-  let resultText = "";
+  let resultEvent = null;
   for (const line of (r.stdout || "").split("\n")) {
     if (!line.includes('"type":"result"')) continue;
-    try { resultText = String(JSON.parse(line).result ?? ""); } catch { /* 壊れた行は無視 */ }
+    try { resultEvent = JSON.parse(line); } catch { /* 壊れた行は無視 */ }
   }
-  const rateLimited = /hit your (session|usage) limit|rate limit/i.test(resultText);
+  const resultText = String(resultEvent?.result ?? "");
+  const rateLimited = /hit your (session|usage) limit|rate limit|resets \d/i.test(resultText);
 
   const meta = {
     key, task: task.id, arm: arm.id, rep, sessionId, baselineSha, rateLimited, resultText: resultText.slice(0, 300),
+    hasResult: resultEvent !== null,
+    resultIsError: resultEvent?.is_error === true,
+    resultSubtype: resultEvent?.subtype || null,
     spawn: { status: r.status, signal: r.signal, timedOut: r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM", error: r.error ? String(r.error.message) : null },
     wallMs,
     workspace: diff,
@@ -356,6 +374,18 @@ function runOne({ task, arm, rep, opts, configDir, runDir }) {
 
   if (!opts.keepWorkspace) rmSync(wsDir, { recursive: true, force: true });
   return meta;
+}
+
+function shouldRerun(meta, streamPath) {
+  if (meta.rateLimited === true || meta.spawn?.timedOut || meta.spawn?.status !== 0) return true;
+  if (meta.hasResult !== undefined) return !meta.hasResult || meta.resultIsError === true;
+  if (!existsSync(streamPath)) return true;
+  let result = null;
+  for (const line of readFileSync(streamPath, "utf8").split("\n")) {
+    if (!line.includes('"type":"result"')) continue;
+    try { result = JSON.parse(line); } catch { /* 次の行を見る */ }
+  }
+  return !result || result.is_error === true;
 }
 
 // ---------------------------------------------------------------- main
@@ -389,7 +419,11 @@ function main() {
     if (!existsSync(join(assetDir, "fixture"))) die(`${id}: fixture が無い (${assetDir})`);
     // prompt.md を直しても fixtureHash は変わらない。指示そのものも条件なので別に記録する。
     const promptHash = createHash("sha256").update(readFileSync(join(dir, "prompt.md"))).digest("hex").slice(0, 16);
-    return { id, dir, assetDir, spec, promptHash, fixtureHash: sha256OfDir(join(assetDir, "fixture")) };
+    const definitionHash = createHash("sha256")
+      .update(sha256OfDir(dir))
+      .update(assetDir === dir ? "" : sha256OfDir(assetDir))
+      .digest("hex").slice(0, 16);
+    return { id, dir, assetDir, spec, promptHash, fixtureHash: sha256OfDir(join(assetDir, "fixture")), definitionHash };
   });
 
   // 総当たりはしない。タスクごとに「そのタスクで意味のある比較」だけを task.json が宣言する。
@@ -406,22 +440,63 @@ function main() {
   const plan = opts.shuffle ? shuffled(flat, opts.seed) : flat;
   const arms = [...new Set(plan.map((p) => p.arm.id))].map((id) => armById[id]);
 
-  const runId = new Date().toISOString().replace(/[:.]/g, "-").replace("Z", "Z") + "_" + opts.profile;
-  const runDir = opts.out ? resolve(opts.out) : join(tmpdir(), "claude-config-eval", runId);
+  const generatedRunId = new Date().toISOString().replace(/[:.]/g, "-").replace("Z", "Z") + "_" + opts.profile;
+  const runDir = opts.out ? resolve(opts.out) : join(tmpdir(), "claude-config-eval", generatedRunId);
   mkdirSync(runDir, { recursive: true });
+  const previousRunPath = join(runDir, "run.json");
+  const previousRun = opts.resume && existsSync(previousRunPath)
+    ? JSON.parse(readFileSync(previousRunPath, "utf8"))
+    : null;
+  const runId = previousRun?.runId || generatedRunId;
 
   // ---- 実験条件を残す。ここが無いと後から結果を読み直せない ----
   const configSha = sh("git", ["rev-parse", "HEAD"], { cwd: REPO_DIR });
   const configDirty = sh("git", ["status", "--porcelain"], { cwd: REPO_DIR }) !== "";
   const claudeVersion = sh("claude", ["--version"]);
+  const configItems = Object.values(armsSpec.layers).flat();
+  const configSourceHash = sha256OfItems(profileDir, configItems);
+  const harnessHash = sha256OfItems(EVAL_DIR, ["runner.mjs", "environment.mjs", "danger-patterns.mjs", "arms.json"]);
+  const providerEnv = providerEnvironment();
+  const resumeSignature = sha256OfJson({
+    profile: opts.profile,
+    model: opts.model,
+    effort: opts.effort,
+    permissionMode: opts.permissionMode,
+    allowedTools: opts.allowedTools,
+    timeout: opts.timeout,
+    repeat: opts.repeat,
+    shuffle: opts.shuffle,
+    seed: opts.seed,
+    keepWorkspace: opts.keepWorkspace,
+    claudeVersion,
+    node: process.version,
+    platform: platform(),
+    arch: arch(),
+    configSourceHash,
+    harnessHash,
+    providerEnvironment: providerEnv,
+    arms: arms.map((a) => ({ id: a.id, layers: a.layers })),
+    executionOrder: plan.map((p) => `${p.task.id}__${p.arm.id}__r${p.rep}`),
+    tasks: tasks.map((t) => ({ id: t.id, definitionHash: t.definitionHash })),
+  });
+  if (previousRun && previousRun.resumeSignature !== resumeSignature) {
+    const oldSignature = previousRun.resumeSignature || "(旧形式のため未記録)";
+    die(`--resume の実験条件が前回と一致しない: ${oldSignature} != ${resumeSignature}\n` +
+        "モデル・設定・タスク・反復数・実行順・ハーネスのいずれかが変わっている。別の --out で新しい run を開始すること。");
+  }
   const conditions = {
     runId,
-    startedAt: new Date().toISOString(),
+    startedAt: previousRun?.startedAt || new Date().toISOString(),
+    resumedAt: previousRun ? [...(previousRun.resumedAt || []), new Date().toISOString()] : [],
     profile: opts.profile,
     profileDir: profileDir.split("\\").join("/"),
     configCommitSha: configSha || "(不明: git 情報を取得できない)",
     configWorkingTreeDirty: configDirty,
     configDirtyWarning: configDirty ? "作業ツリーに未コミットの変更がある。この結果は configCommitSha だけでは再現できない。" : null,
+    configSourceHash,
+    harnessHash,
+    providerEnvironment: providerEnv,
+    resumeSignature,
     claudeCodeVersion: claudeVersion || "(不明)",
     claudeCodeBinary: sh(process.platform === "win32" ? "where" : "which", ["claude"]).split("\n")[0] || "(不明)",
     model: opts.model,
@@ -439,7 +514,7 @@ function main() {
     gitVersion: sh("git", ["--version"]),
     arms: arms.map((a) => ({ id: a.id, label: a.label, layers: a.layers })),
     tasks: tasks.map((t) => ({
-      id: t.id, fixtureHash: t.fixtureHash, promptHash: t.promptHash,
+      id: t.id, fixtureHash: t.fixtureHash, promptHash: t.promptHash, definitionHash: t.definitionHash,
       exercises: t.spec.exercises || [], expectedFiles: t.spec.expectedFiles || [],
       arms: opts.arms || t.spec.arms || null,
       armsWhy: t.spec.armsWhy || null,
@@ -447,7 +522,7 @@ function main() {
     })),
     planSize: plan.length,
     strippedSettingsKeys: armsSpec.settings.strip,
-    envStripped: "CLAUDE* (ANTHROPIC_* を除く) を子プロセスから落としている",
+    envStripped: "親セッション由来の CLAUDE* を除去。ただしクラウドプロバイダー選択・認証方式の変数は保持",
     caveats: [
       opts.permissionMode === "bypassPermissions"
         ? "permissionMode=bypassPermissions のため、settings.json の permissions.allow / ask / deny の効果はこの run では測っていない (すべて迂回される)。"
@@ -485,54 +560,65 @@ function main() {
 
   if (opts.dryRun) { log("\n--dry-run のためここで終了。run.json と configs/ だけ書き出した。"); return; }
 
-  const metas = [];
+  const metasByKey = new Map();
+  if (opts.resume) {
+    for (const { task, arm, rep } of plan) {
+      const key = `${task.id}__${arm.id}__r${rep}`;
+      const metaPath = join(runDir, "cases", key, "meta.json");
+      if (existsSync(metaPath)) metasByKey.set(key, JSON.parse(readFileSync(metaPath, "utf8")));
+    }
+  }
+  const orderedMetas = () => plan.map(({ task, arm, rep }) => metasByKey.get(`${task.id}__${arm.id}__r${rep}`)).filter(Boolean);
   let done = 0;
   let skipped = 0;
   let rateLimitHits = 0;
+  let stoppedByRateLimit = false;
   for (const { task, arm, rep } of plan) {
     done++;
     const key = `${task.id}__${arm.id}__r${rep}`;
-    const metaPath = join(runDir, "cases", key, "meta.json");
-    if (opts.resume && existsSync(metaPath)) {
-      const prev = JSON.parse(readFileSync(metaPath, "utf8"));
-      // レート制限に当たった実行は「済み」ではない。回し直す。
-      const wasRateLimited = prev.rateLimited === true || (prev.rateLimited === undefined && (() => {
-        const sp = join(runDir, "cases", key, "stream.jsonl");
-        if (!existsSync(sp)) return false;
-        return /hit your (session|usage) limit|rate limit/i.test(readFileSync(sp, "utf8"));
-      })());
-      if (!wasRateLimited) { metas.push(prev); skipped++; continue; }
+    if (opts.resume && metasByKey.has(key)) {
+      const prev = metasByKey.get(key);
+      const streamPath = join(runDir, "cases", key, "stream.jsonl");
+      // タスク自体の失敗は結果として残す。レート制限・timeout・API/起動エラーだけ回し直す。
+      if (!shouldRerun(prev, streamPath)) { skipped++; continue; }
     }
     log(`\n[${done}/${plan.length}] ${key}`);
     const meta = runOne({ task, arm, rep, opts, configDir: configDirs[arm.id], runDir });
-    metas.push(meta);
+    metasByKey.set(key, meta);
     if (meta.rateLimited) {
       rateLimitHits++;
       // 上限に当たったら回し続けても無駄。3 連続で当たったら諦めて、ここまでを残す。
       if (rateLimitHits >= 3) {
         log(`\nレート制限に連続で当たったので中断する: ${meta.resultText}`);
         log(`上限が解除されてから、同じ --out を指定して --resume で続きから回すこと。`);
+        stoppedByRateLimit = true;
         break;
       }
     } else rateLimitHits = 0;
     // 途中で落ちても、そこまでの分を analyze.mjs に食わせられるようにする
-    writeFileSync(join(runDir, "cases.partial.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
+    writeFileSync(join(runDir, "cases.partial.jsonl"), orderedMetas().map((m) => JSON.stringify(m)).join("\n") + "\n");
   }
   if (skipped) log(`\n--resume: ${skipped} 件は既存の結果を再利用した`);
 
+  const metas = orderedMetas();
   writeFileSync(join(runDir, "cases.jsonl"), metas.map((m) => JSON.stringify(m)).join("\n") + "\n");
-  const aborted = metas.length < plan.length;
+  const rateLimitedCount = metas.filter((m) => m.rateLimited).length;
+  const missingCount = plan.length - metas.length;
+  const aborted = stoppedByRateLimit || missingCount > 0;
+  const incomplete = aborted || rateLimitedCount > 0 || metas.some((m) => shouldRerun(m, join(runDir, "cases", m.key, "stream.jsonl")));
   const finished = {
     ...conditions,
     finishedAt: new Date().toISOString(),
     caseCount: metas.length,
     aborted,
-    abortReason: aborted ? "レート制限に連続で当たったため中断" : null,
-    rateLimitedCount: metas.filter((m) => m.rateLimited).length,
+    incomplete,
+    missingCount,
+    abortReason: stoppedByRateLimit ? "レート制限に連続で当たったため中断" : (missingCount ? "一部ケースが未実行" : null),
+    rateLimitedCount,
   };
   writeFileSync(join(runDir, "run.json"), JSON.stringify(finished, null, 2) + "\n");
 
-  log(`\n完了。${metas.length} 件。`);
+  log(`\n${incomplete ? "未完了" : "完了"}。記録済み ${metas.length}/${plan.length} 件、無効 ${metas.filter((m) => shouldRerun(m, join(runDir, "cases", m.key, "stream.jsonl"))).length} 件。`);
   log(`集計: node eval/analyze.mjs ${runDir}`);
 }
 

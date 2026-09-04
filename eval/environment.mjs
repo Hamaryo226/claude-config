@@ -1,0 +1,86 @@
+// 評価用の子プロセスへ渡す環境変数を一元管理する。
+// 親 Claude セッションの状態は落とす一方、クラウドプロバイダーの選択・認証方式は
+// 実験条件なので保持する。認証情報の値は run.json に書かない。
+
+export const CLAUDE_PROVIDER_ENV = new Set([
+  "CLAUDE_CODE_USE_BEDROCK",
+  "CLAUDE_CODE_USE_MANTLE",
+  "CLAUDE_CODE_USE_ANTHROPIC_AWS",
+  "CLAUDE_CODE_USE_VERTEX",
+  "CLAUDE_CODE_USE_FOUNDRY",
+  "CLAUDE_CODE_SKIP_AWS_CRED_CACHE",
+  "CLAUDE_CODE_AWS_CHAIN_RESOLVE_TIMEOUT_MS",
+  "CLAUDE_CODE_SKIP_BEDROCK_AUTH",
+  "CLAUDE_CODE_SKIP_MANTLE_AUTH",
+  "CLAUDE_CODE_SKIP_ANTHROPIC_AWS_AUTH",
+  "CLAUDE_CODE_SKIP_VERTEX_AUTH",
+  "CLAUDE_CODE_SKIP_FOUNDRY_AUTH",
+  "CLAUDE_CODE_DISABLE_BEDROCK_CONTENT_TYPE_DEFAULT",
+  "CLAUDE_CODE_DISABLE_BEDROCK_CONTENT_TYPE_GUARD",
+]);
+
+const PROVIDER_CONTEXT_ENV = [
+  ...CLAUDE_PROVIDER_ENV,
+  "AWS_REGION",
+  "AWS_DEFAULT_REGION",
+  "AWS_PROFILE",
+  "AWS_CONFIG_FILE",
+  "AWS_SHARED_CREDENTIALS_FILE",
+  "CLOUD_ML_REGION",
+  "GCLOUD_PROJECT",
+  "GOOGLE_CLOUD_PROJECT",
+  "GOOGLE_APPLICATION_CREDENTIALS",
+  "ANTHROPIC_MODEL",
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_AWS_BASE_URL",
+  "ANTHROPIC_AWS_WORKSPACE_ID",
+  "ANTHROPIC_BEDROCK_BASE_URL",
+  "ANTHROPIC_BEDROCK_MANTLE_BASE_URL",
+  "ANTHROPIC_BEDROCK_REGION_PREFIX",
+  "ANTHROPIC_BEDROCK_SERVICE_TIER",
+  "ANTHROPIC_VERTEX_BASE_URL",
+  "ANTHROPIC_VERTEX_PROJECT_ID",
+  "ANTHROPIC_FOUNDRY_BASE_URL",
+  "ANTHROPIC_FOUNDRY_RESOURCE",
+  "ANTHROPIC_DEFAULT_FABLE_MODEL",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+];
+
+const PROVIDER_CREDENTIAL_ENV = [
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
+  "ANTHROPIC_AWS_API_KEY",
+  "ANTHROPIC_FOUNDRY_API_KEY",
+  "ANTHROPIC_FOUNDRY_AUTH_TOKEN",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SESSION_TOKEN",
+  "AWS_BEARER_TOKEN_BEDROCK",
+  "AZURE_CLIENT_ID",
+  "AZURE_CLIENT_SECRET",
+  "AZURE_TENANT_ID",
+];
+
+export function childProcessEnv(extra = {}, source = process.env) {
+  const env = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (key.startsWith("CLAUDE") && !CLAUDE_PROVIDER_ENV.has(key)) continue;
+    env[key] = value;
+  }
+  return { ...env, ...extra };
+}
+
+export function providerEnvironment(source = process.env) {
+  const values = {};
+  for (const key of PROVIDER_CONTEXT_ENV) {
+    if (source[key] !== undefined) values[key] = source[key];
+  }
+
+  const credentialPresence = {};
+  for (const key of PROVIDER_CREDENTIAL_ENV) {
+    if (source[key] !== undefined) credentialPresence[key] = true;
+  }
+  return { values, credentialPresence };
+}

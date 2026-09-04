@@ -1,6 +1,6 @@
 ---
 name: lib-scout
-description: ライブラリ・フレームワーク・API の最新仕様を調べたいときに使う。バージョン選定、破壊的変更の洗い出し、複数候補の比較、移行コストの見積もりに向く。公式ドキュメントを実際に引いて答える。ファイルは変更しない。
+description: 複数の公式資料を横断するライブラリ・API調査に使う。破壊的変更の洗い出し、複数候補の比較、移行コストの見積もり向け。1ページで分かることは直接調べる。ファイルは変更しない。
 tools: WebSearch, WebFetch, Read, Grep, Glob
 model: sonnet
 effort: medium

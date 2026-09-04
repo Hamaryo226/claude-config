@@ -1,7 +1,6 @@
 ---
 name: commit
-description: 未コミットの変更を論理単位に分けて、日本語のコミットメッセージでコミットする。push はしない。
-disable-model-invocation: true
+description: 未コミットの変更を論理単位に分けて、日本語のコミットメッセージでコミットする。push はしない。ユーザーがコミットを求めたとき、または /commit と指定したときに使う。
 allowed-tools: Read, Grep, Glob, Bash, PowerShell
 ---
 

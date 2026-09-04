@@ -3,6 +3,12 @@
 対象: `work/CLAUDE.md` / `work/rules/` / `work/skills/` / `work/agents/` / `work/hooks/` / `work/settings.json`
 前提: Sonnet 5 (`claude-sonnet-5`) を実務のソフトウェア開発で使う
 
+> **2026-09-04 再検定注記:** このレビューの「有意」は、当時のレポートが使った未補正の
+> 正規近似による判定である。現在のハーネスと同じ両側 Fisher 正確確率検定 + Holm 補正を
+> 宣言済み 13 比較へ適用すると、`skills/commit` と git-hygiene の `CLAUDE.md` はともに
+> 補正後 p = 0.0606 であり、5% 水準では差を主張できない。観測差と具体的な失敗経路は
+> 改善候補を選ぶ根拠として残るが、確認的な結論には再評価が必要である。
+
 ## この run で実際に測れたこと
 
 有効 141 実行 (セルあたり n = 4〜10)。`report.md` の「宣言された比較」から。

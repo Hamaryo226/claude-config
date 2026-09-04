@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: ビルドやテストを実際に走らせて、失敗の原因を特定したいときに使う。落ちているテストの切り分け、ビルドエラーの原因究明、変更後の回帰確認に向く。修正は行わず、原因と該当箇所を報告して返す。
+description: 長いビルドログや多数の失敗を親のコンテキストから切り離して調べるときに使う。小規模で出力が短い失敗は直接調べる。修正は行わず、原因と該当箇所を報告する。
 tools: Read, Grep, Glob, Bash, PowerShell
 model: sonnet
 memory: project

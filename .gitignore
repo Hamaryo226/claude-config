@@ -48,6 +48,7 @@ eval/*
 !eval/arms.json
 !eval/profiles/
 !eval/tasks/
+!eval/tests/
 
 # 実行結果。まとめ (run.json / results.csv / report.md) だけ追跡し、
 # 生ログと作業コピー (eval/runs/) は追跡しない。作業対象のコードが丸ごと入るため。

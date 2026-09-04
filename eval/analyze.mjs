@@ -9,6 +9,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanCommand } from "./danger-patterns.mjs";
+import { fisherExactTwoSided, holmAdjust } from "./statistics.mjs";
 
 const EVAL_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -373,6 +374,27 @@ const tasks = [...new Set(validRows.map((r) => r.task))];
 const arms = run.arms.map((a) => a.id).filter((id) => validRows.some((r) => r.arm === id));
 const armLabel = Object.fromEntries(run.arms.map((a) => [a.id, a.label]));
 
+// 宣言された全比較をひとつの family として扱い、Fisher の正確確率検定を Holm 法で補正する。
+// 小標本に正規近似を使うと、期待度数が小さい表で「差あり」を過大に主張し得るため。
+const comparisonTests = [];
+for (const task of run.tasks) {
+  for (const [index, comparison] of (task.comparisons || []).entries()) {
+    const baselineRows = validRows.filter((r) => r.task === task.id && r.arm === comparison.baseline);
+    const treatmentRows = validRows.filter((r) => r.task === task.id && r.arm === comparison.treatment);
+    if (!baselineRows.length || !treatmentRows.length) continue;
+    const baselineSuccesses = baselineRows.filter((r) => r.task_success === true).length;
+    const treatmentSuccesses = treatmentRows.filter((r) => r.task_success === true).length;
+    comparisonTests.push({
+      task: task.id,
+      index,
+      pRaw: fisherExactTwoSided(baselineSuccesses, baselineRows.length, treatmentSuccesses, treatmentRows.length),
+    });
+  }
+}
+const adjustedP = holmAdjust(comparisonTests.map((x) => x.pRaw));
+for (let i = 0; i < comparisonTests.length; i++) comparisonTests[i].pAdjusted = adjustedP[i];
+const comparisonTestFor = (task, index) => comparisonTests.find((x) => x.task === task && x.index === index);
+
 const pct = (v) => (v === null ? "-" : `${Math.round(v * 100)}%`);
 
 const md = [];
@@ -489,21 +511,6 @@ for (const task of tasks) {
 }
 
 // ---- 宣言された比較の差分 ----
-// 2 群の比率差は正規近似 (連続修正なし)。n が小さいので「差ありと言えるか」の目安にしか使わない。
-function propTest(k1, n1, k2, n2) {
-  if (!n1 || !n2) return null;
-  const p1 = k1 / n1, p2 = k2 / n2;
-  const p = (k1 + k2) / (n1 + n2);
-  const se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2));
-  if (se === 0) return { diff: p2 - p1, z: 0, significant: false };
-  const z = (p2 - p1) / se;
-  return { diff: p2 - p1, z, significant: Math.abs(z) >= 1.96 && n1 >= 5 && n2 >= 5 };
-}
-const sd = (xs) => {
-  if (xs.length < 2) return null;
-  const m = xs.reduce((a, b) => a + b, 0) / xs.length;
-  return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1));
-};
 
 /**
  * 追加した層が、その実行で実際に発火したかを数える。
@@ -535,8 +542,8 @@ function activation(measures, treatmentRows) {
 md.push("## 宣言された比較");
 md.push("");
 md.push("タスクごとに `task.json` が「この差分を測りたい」と宣言したペアだけを並べる。");
-md.push("成功率の差は 2 群の比率差の正規近似 (|z| >= 1.96 かつ両群 n >= 5 で「差あり」)。");
-md.push("n が小さいので、これは検定というより**差を主張してよいかの足切り**として読むこと。");
+md.push("成功率の差は両側 Fisher 正確確率検定を使い、この節の全比較を 1 family として Holm 法で補正する。");
+md.push("補正後 `p < 0.05` のときだけ「改善」または「悪化」と判定する。小標本では検出力が低い点に注意する。");
 md.push("");
 md.push("「発火」列は、追加した層がその実行で実際に動いた回数。ここが 0 なら結論は");
 md.push("「効果が無い」ではなく**「このタスクがその設定を発火させていない」**。判定は次のどれか:");
@@ -557,15 +564,16 @@ for (const task of tasks) {
   md.push("");
   if (spec.armsWhy) md.push(`回すアームの選び方: ${spec.armsWhy}`);
   md.push("");
-  md.push("| 測る対象 | 対照 → 追加 | 発火 | 成功 | 差 | 判定 | token 変化 | $ 変化 | 実時間 変化 | tool call 変化 |");
-  md.push("| --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: | ---: |");
-  for (const c of comps) {
+  md.push("| 測る対象 | 対照 → 追加 | 発火 | 成功 | 差 | p (Holm) | 判定 | token 変化 | $ 変化 | 実時間 変化 | tool call 変化 |");
+  md.push("| --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |");
+  for (const [comparisonIndex, c] of comps.entries()) {
     const b = validRows.filter((r) => r.task === task && r.arm === c.baseline);
     const t = validRows.filter((r) => r.task === task && r.arm === c.treatment);
-    if (!b.length || !t.length) { md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | (未実行) | - | - | - | - | - | - |`); continue; }
+    if (!b.length || !t.length) { md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | (未実行) | - | - | - | - | - | - | - | - |`); continue; }
     const kb = b.filter((r) => r.task_success === true).length;
     const kt = t.filter((r) => r.task_success === true).length;
-    const st = propTest(kb, b.length, kt, t.length);
+    const diff = kt / t.length - kb / b.length;
+    const test = comparisonTestFor(task, comparisonIndex);
     const delta = (key) => {
       const xb = b.map((r) => num(r[key])).filter((v) => v !== null);
       const xt = t.map((r) => num(r[key])).filter((v) => v !== null);
@@ -578,10 +586,9 @@ for (const task of tasks) {
     };
     const act = activation(c.measures, t);
     const verdict = act.fired === false ? "**発火せず**"
-      : st === null ? "-"
-      : st.significant ? (st.diff > 0 ? "**改善**" : "**悪化**")
+      : test?.pAdjusted < 0.05 ? (diff > 0 ? "**改善**" : "**悪化**")
       : "差を主張できない";
-    md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | ${act.label} | ${kb}/${b.length} → ${kt}/${t.length} | ${st ? (st.diff * 100).toFixed(0) + "pt" : "-"} | ${verdict} | ${delta("total_tokens")} | ${delta("cost_usd")} | ${delta("wall_ms")} | ${delta("tool_calls")} |`);
+    md.push(`| \`${c.measures}\` | \`${c.baseline}\` → \`${c.treatment}\` | ${act.label} | ${kb}/${b.length} → ${kt}/${t.length} | ${(diff * 100).toFixed(0)}pt | ${test ? test.pAdjusted.toFixed(4) : "-"} | ${verdict} | ${delta("total_tokens")} | ${delta("cost_usd")} | ${delta("wall_ms")} | ${delta("tool_calls")} |`);
   }
   md.push("");
   for (const c of comps) md.push(`- \`${c.measures}\` — ${c.why}`);

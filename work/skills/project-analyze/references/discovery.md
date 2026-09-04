@@ -24,9 +24,9 @@ find . -maxdepth 4 -iname "docs" -o -iname "doc" -o -iname "設計*" -o -iname "
 | ADR | `docs/adr/`, `docs/decisions/` |
 | DB migration / schema | `db/migration/`, `migrations/`, `*.sql`, Flyway / Liquibase / EF Migrations |
 
-**バイナリ形式 (`.xlsx` / `.docx` / `.pdf` / `.vsdx` など) は開けない。**
-パスと更新日時だけ記録し、「存在するが未解析」として報告する。中身を推測しない。
-ユーザーが要点を貼ってくれるなら、それを一次資料として扱う。
+PDF は Read ツールで読み、長い場合はページ範囲を分ける。`.xlsx` / `.docx` / `.vsdx` など
+Read ツールが直接扱えない形式は、利用可能な読み取り専用ツールで安全に抽出できる場合だけ読む。
+読めなかったものはパスと更新日時を記録し、「存在するが未解析」として報告する。中身を推測しない。
 
 ## 2. 技術とバージョン
 
@@ -39,7 +39,8 @@ find . -maxdepth 4 -iname "docs" -o -iname "doc" -o -iname "設計*" -o -iname "
 
 ## 3. build / test / run と CI
 
-**CI で走るものが唯一の正解。** ローカルの手順書と食い違ったら CI を優先する。
+**CI で実行されるコマンドは、現在必須の機械的チェックを判断する第一の根拠。**
+ローカル手順書と食い違ったら矛盾として記録し、検証には CI と同じコマンドを優先する。
 
 ```bash
 ls .github/workflows .gitlab-ci.yml Jenkinsfile azure-pipelines.yml 2>/dev/null

@@ -3,8 +3,8 @@
 この設定一式 (`CLAUDE.md` / `rules` / `skills` / `agents` / `hooks`) が、開発タスクの結果を
 実際に良くしているのかを、同じタスクを条件だけ変えて回して比べる。
 
-**評価対象の設定には手を入れていない。** `eval/` は完全に追加だけで、
-ルートと `work/` のファイルは 1 行も変えていない (`.gitignore` に追跡対象を足したのを除く)。
+評価の実行中は対象設定を書き換えない。改善前後を比べるときは、各 run の `run.json` に記録された
+設定ハッシュと commit を使って条件を区別する。
 
 ## 何を比べるか
 
@@ -14,7 +14,9 @@
 | `a1-claudemd` | CLAUDE.md のみ | `CLAUDE.md` |
 | `a2-rules` | + Rules | `CLAUDE.md`, `rules/` |
 | `a3-skills` | + Skills | `CLAUDE.md`, `rules/`, `skills/` |
-| `a4-full` | 全設定 | `CLAUDE.md`, `rules/`, `skills/`, `agents/`, `settings.json`, `hooks/` |
+| `a4-agents` | + Agents | `CLAUDE.md`, `rules/`, `agents/` |
+| `a5-hooks` | + Hooks/settings | `CLAUDE.md`, `rules/`, `settings.json`, `hooks/` |
+| `a6-full` | 全設定 (参照用) | `CLAUDE.md`, `rules/`, `skills/`, `agents/`, `settings.json`, `hooks/` |
 
 アームごとに使い捨ての設定ディレクトリを組み立て、`CLAUDE_CONFIG_DIR` でそれを指して
 Claude Code をヘッドレス (`claude -p`) で起動する。`--setting-sources user` を渡すので、
@@ -140,15 +142,17 @@ node eval/analyze.mjs ./runs/2026-09-02
 - 反復回数、タスクごとの fixture のハッシュ
 - Node / OS / git のバージョン
 - アームの定義スナップショットと、`settings.json` から落としたキー
+- クラウドプロバイダーの選択・リージョン・モデル指定と、認証変数の有無 (値は記録しない)
 
-子プロセスからは `CLAUDE*` の環境変数を落としている (`ANTHROPIC_*` を除く)。
-親セッションの状態が漏れると条件が揃わないため。
+子プロセスからは親セッション由来の `CLAUDE*` を原則として落とす。
+ただし `CLAUDE_CODE_USE_BEDROCK` / `CLAUDE_CODE_USE_VERTEX` / `CLAUDE_CODE_USE_FOUNDRY`
+など、クラウドプロバイダーの選択・認証方式に必要な変数は実験条件として保持する。
 セッション ID は実行ごとに新しい UUID を振り、`--no-session-persistence` で履歴を残さない。
 
 ## 制約 (無理に数字を出していないところ)
 
 **モデルの出力は非決定的。** 同じ条件でも結果は毎回違う。`--repeat` が 3 未満のときは
-`report.md` の冒頭にその旨の警告が出る。5 アーム × 7 タスク × 3 反復 = 105 実行になるので、
+`report.md` の冒頭にその旨の警告が出る。既定のタスク別アーム指定では 20 組 × 3 反復 = 60 実行になるので、
 まず 1〜2 タスクに絞って回すのを勧める。
 
 **実行順は種付きでシャッフルする。** タスク順・アーム順のまま回すと、後半の実行だけ
@@ -203,18 +207,25 @@ Windows の通常ユーザーや、root でないコンテナでは問題ない�
 
 **token 使用量にサブエージェントの内訳は無い。** 親の `usage` に合算されて返る。
 
-**`a3-skills` は多くの場合 `a2-rules` と区別できない。**
-自作スキル 4 つはすべて `disable-model-invocation: true` なので、
-ユーザーが `/commit` のように名前で呼ばない限りモデルからは起動できない。
-これは設定の欠陥ではなく設計だが、「スキルが自律的なタスクの質を上げる」ことは原理的に無い。
-スキル層を測るために、指示そのものを `/commit` にした `commit-skill` タスクを別に置いてある。
+**`a3-skills` は、対象Skillが発火しないタスクでは `a2-rules` と区別できない。**
+`pr` / `release` / `onboard` は `disable-model-invocation: true` なので明示起動専用。
+`commit` (personal / work)、`project-analyze`、`codebase-conventions` は説明に合う依頼で自動起動できる。
+`commit` の有無は `commit-skill` タスクで比較する。後者2つは多段階かつ対話を含むため、
+現行タスク集合では動的な品質差をまだ測っていない。
+
+## resume の整合性
+
+`--resume` はモデル、設定内容、タスク定義、反復数、実行順、Claude Codeとハーネスの版が
+前回と一致するときだけ再開する。条件が違えば既存結果を上書きせず終了する。
+レート制限や timeout、APIエラーのケースだけを再実行し、通常のタスク失敗は結果として保持する。
 
 ## 認証について
 
 `CLAUDE_CONFIG_DIR` を差し替えるので、そこに認証情報が無いと起動できないことがある。
 
-1. `ANTHROPIC_API_KEY` を環境変数で渡すのが一番きれい
-2. だめなら `--copy-credentials` で `.credentials.json` を各アームの設定ディレクトリへ複製する。
+1. Anthropic API は `ANTHROPIC_API_KEY` を環境変数で渡す
+2. Bedrock / Vertex / Foundry は各プロバイダーの `CLAUDE_CODE_USE_*` と認証環境変数を渡す
+3. だめなら `--copy-credentials` で `.credentials.json` を各アームの設定ディレクトリへ複製する。
    **一時ディレクトリに OAuth トークンの複製が残る。** 実行後は出力ディレクトリごと消すこと
 
 出力ディレクトリには作業コピーと生ログが丸ごと残る。**`eval/runs/` は `.gitignore` で除外してある**が、

@@ -26,7 +26,7 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 
 ### Phase 1. 機械的な設定を先に読む
 
-@references/sampling.md の「1. 明示的設定」に従う。
+[references/sampling.md](references/sampling.md) の「1. 明示的設定」を読む。
 `.editorconfig` / formatter / linter / Checkstyle / Spotless / StyleCop / ESLint / Prettier /
 コンパイラ設定 / build 設定 / CI をこの順で確認する。
 
@@ -36,7 +36,7 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 
 ### Phase 2. 構造を掴んでサンプリング
 
-@references/sampling.md の「2. サンプリング」に従う。
+[references/sampling.md](references/sampling.md) の「2. サンプリング」を読む。
 
 - まずディレクトリ構造とモジュール構成を掴む
 - 各レイヤ・主要モジュールから代表ファイルを複数選ぶ
@@ -45,7 +45,8 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 
 ### Phase 3. 観測して数える
 
-@references/observe.md の項目を埋める。各項目に **分子/分母** と **数えた方法** を残す。
+[references/observe.md](references/observe.md) から、対象コードベースに該当する項目だけを選んで埋める。
+各項目に **分子/分母** と **数えた方法** を残す。
 
 観測する領域: コード配置 / コードスタイル / **コメント (最重点)** / ログ・例外 / テスト。
 
@@ -54,24 +55,29 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 
 ### Phase 4. 確信度を分類する
 
-@references/confidence.md の閾値で、観測ごとに次のいずれかを付ける。
+[references/confidence.md](references/confidence.md) の閾値を読み、観測ごとに次のいずれかを付ける。
 
 `明示的規約` / `強い慣習` / `弱い傾向` / `混在` / `不明`
 
 **Rule に書けるのは `明示的規約` と `強い慣習` だけ。** `弱い傾向` は「既存に合わせる」と書くに留める。
 `混在` と `不明` は報告するだけで書かない。
 
-### Phase 5. レポートを出して止まる
+### Phase 5. レポートと生成案を提示する
 
-**ここでファイルを書き始めない。** @references/output.md の形式でレポートを出し、
-続けて rules の構成案を出して、ユーザーの了承を待つ。
+**ここでファイルを書き始めない。** [references/output.md](references/output.md) の形式でレポートを出し、
+続けて rules の構成案を示す。
 
 既存の `.claude/rules/` があれば、各ファイルを
 `維持` / `追記候補` / `古い可能性` / `重複` / `実コードと矛盾` に分類して提示する。**勝手に上書きしない。**
 
+ユーザーが今回の依頼で rules の生成・改善まで明示している場合は、そのまま Phase 6 へ進む。
+分析または提案だけを求められた場合、既存規約との矛盾を解消できない場合、既存ファイルの大部分を
+置き換える場合は、ここで確認を待つ。
+
 ### Phase 6. 生成
 
-了承された分だけ書く。テンプレートと分量上限は @references/output.md。
+生成・改善まで依頼されている範囲だけを書く。テンプレートと分量上限は
+[references/output.md](references/output.md) に従う。
 
 - `paths` フロントマターで対象を限定する。**paths を書けないものは rules にしない**
 - CLAUDE.md (プロジェクト / 会社共通 / 個人) に既にあることを繰り返さない
