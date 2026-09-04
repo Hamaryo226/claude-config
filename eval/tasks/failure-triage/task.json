@@ -1,7 +1,7 @@
 {
   "id": "failure-triage",
   "title": "落ちているテストを切り分けて報告する",
-  "summary": "12 件中 6 件が落ちるが、5 件は 1 つの根本原因からの連鎖で、独立した失敗は 2 件だけ。修正はせず診断だけを求める。agents/test-runner が担当する仕事そのもの。",
+  "summary": "12 件中 7 件が落ちるが、5 件は 1 つの根本原因からの連鎖で、独立した失敗は 2 件だけ。修正はせず診断だけを求める。agents/test-runner が担当する仕事そのもの。",
   "exercises": [
     "CLAUDE.md",
     "agents/test-runner"
