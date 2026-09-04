@@ -7,8 +7,12 @@ import { readFileSync } from "node:fs";
 /** 各ルール: [判定, 理由]。理由はそのまま Claude に返り、次の手を考える材料になる。 */
 const RULES = [
   [
-    /(^|[\s;&|(])rm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*f|(^|[\s;&|(])rm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*f[a-zA-Z]*[rR]/,
-    "rm -rf は使わない。消す対象を明示して 1 つずつ削除するか、ユーザーに削除を依頼すること。",
+    /(^|[\s;&|(`])rm\s+(?:-[a-zA-Z-]+\s+)*(?:-[a-zA-Z]*[rR][a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*[rR]|--recursive\s+(?:-[a-zA-Z-]+\s+)*--force|--force\s+(?:-[a-zA-Z-]+\s+)*--recursive|-[rR]\s+(?:-[a-zA-Z-]+\s+)*-f|-f\s+(?:-[a-zA-Z-]+\s+)*-[rR])/,
+    "rm の再帰強制削除は使わない。消す対象を明示して 1 つずつ削除するか、ユーザーに削除を依頼すること。",
+  ],
+  [
+    /(^|[\s;&|(`])find\s[\s\S]*?(-delete\b|-exec\s+rm\b)|\|\s*xargs\s+(?:-\S+\s+)*rm\b/,
+    "find や xargs 経由の一括削除は使わない。対象を確認したうえで、実行はユーザーに任せること。",
   ],
   [
     /Remove-Item[\s\S]*-Recurse[\s\S]*-Force|Remove-Item[\s\S]*-Force[\s\S]*-Recurse/i,
@@ -31,7 +35,7 @@ const RULES = [
     "git push --force は他人の履歴を壊す。--force-with-lease を使うか、ユーザーに実行を依頼すること。",
   ],
   [
-    /git\s+push\s[\s\S]*\s(origin\s+)?(main|master)(\s|$)/,
+    /git\s+push\s[\s\S]*?(?:\s|:)(?:origin\s+)?(?:HEAD:)?(?:refs\/heads\/)?(main|master)(\s|$)/,
     "main / master への直接 push は行わない。作業ブランチを切って PR を作ること。",
   ],
   [
@@ -41,6 +45,10 @@ const RULES = [
   [
     /git\s+(filter-branch|filter-repo)|git\s+reflog\s+expire|git\s+gc\s[\s\S]*--prune=now/,
     "履歴を書き換える操作は自動実行しない。手順を提示してユーザーに実行してもらうこと。",
+  ],
+  [
+    /(^|[\s;&|(`])(cat|type|less|more|head|tail|Get-Content|gc)\s[\s\S]*?\.(env|pem|key|pfx|p12|jks|keystore)\b|(^|[\s;&|(`])(cat|Get-Content)\s[\s\S]*?(id_rsa|id_ed25519|\.npmrc|\.netrc|credentials(\.json)?)\b/i,
+    "認証情報や鍵ファイルをコマンド経由で読まない。必要な値ではなく、必要な設定項目だけをユーザーに確認すること。",
   ],
 ];
 // パッケージ公開 (npm publish / dotnet nuget push) はここでは止めない。

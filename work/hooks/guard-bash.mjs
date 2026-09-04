@@ -114,7 +114,7 @@ const RULES = [
     "外部への HTTP アクセスはコマンドで行わない。必要な調査は WebFetch (許可ドメインのみ) を使うこと。社内データを外部へ送らない。",
   ],
   [
-    /(^|[\s;&|(])(cat|type|Get-Content|gc)\s[\s\S]*\.(env|pem|key|pfx|p12|jks|keystore)\b/i,
+    /(^|[\s;&|(`])(cat|type|less|more|head|tail|Get-Content|gc)\s[\s\S]*?\.(env|pem|key|pfx|p12|jks|keystore)\b|(^|[\s;&|(`])(cat|Get-Content)\s[\s\S]*?(id_rsa|id_ed25519|\.npmrc|\.netrc|credentials(\.json)?)\b/i,
     "認証情報や鍵ファイルを読まない。値が必要なら、何が必要かを伝えて人に渡してもらうこと。",
   ],
   [
