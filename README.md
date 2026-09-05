@@ -28,6 +28,9 @@ Claude Code の設定を管理するリポジトリ。個人開発用と会社�
 `eval/` は設定そのものではなく、この設定が効いているかを測るための評価基盤。
 中身と使い方は [`eval/README.md`](eval/README.md) を見ること。
 
+`.github/workflows/static-validation.yml` は pull request と `main` への push ごとに、
+JavaScript構文、JSON、評価ハーネス、個人・会社プロファイル、共有Skillの同期を検証する。
+
 ### rules
 
 `paths` フロントマターで対象ファイルを絞っている。一致するファイルを Claude が読んだ時だけ

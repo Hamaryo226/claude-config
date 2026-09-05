@@ -14,6 +14,12 @@
 !settings.json
 !statusline.mjs
 
+!.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/static-validation.yml
+
 # --- 追跡するディレクトリ (中身はさらに絞る) ---
 !agents/
 agents/*
