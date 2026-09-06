@@ -2,8 +2,6 @@
 name: lib-scout
 description: 複数の公式ドキュメントを横断して読む必要がある調査に使う。バージョン移行の破壊的変更の洗い出し、複数ライブラリの比較、移行コストの見積もり向け。ファイルは変更しない。**1 ページ見れば分かることは、呼ばずに WebFetch で直接引く。**
 tools: WebSearch, WebFetch, Read, Grep, Glob
-model: sonnet
-effort: medium
 color: cyan
 ---
 

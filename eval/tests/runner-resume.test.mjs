@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -14,10 +14,10 @@ test("resume 中断後も既存の後続ケースを cases.jsonl に保持する
   const tmp = mkdtempSync(join(tmpdir(), "claude-config-runner-test-"));
   const bin = join(tmp, "bin");
   mkdirSync(bin);
-  const fake = join(bin, "claude");
+  const fakeScript = join(bin, "fake-claude.mjs");
   const state = join(tmp, "count.txt");
   writeFileSync(state, "0\n");
-  writeFileSync(fake, `#!/usr/bin/env node
+  writeFileSync(fakeScript, `
 import { readFileSync, writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
 if (args.includes("--version")) { console.log("2.1.test"); process.exit(0); }
@@ -30,11 +30,14 @@ console.log(JSON.stringify({ type: "system", subtype: "init", model: "fake-sonne
 console.log(JSON.stringify({ type: "result", subtype: "success", is_error: limited, result: limited ? "rate limit" : "ok", usage: {} }));
 process.exit(limited ? 1 : 0);
 `);
-  chmodSync(fake, 0o755);
-
   const out = join(tmp, "run");
   const baseArgs = [RUNNER, "--tasks", "ts-bugfix", "--arms", "a0-bare", "--repeat", "7", "--no-shuffle", "--no-keep-workspace", "--out", out];
-  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_CLAUDE_STATE: state, FAKE_CLAUDE_PHASE: "first" };
+  const env = {
+    ...process.env,
+    CLAUDE_CONFIG_EVAL_CLI_SCRIPT: fakeScript,
+    FAKE_CLAUDE_STATE: state,
+    FAKE_CLAUDE_PHASE: "first",
+  };
   execFileSync(process.execPath, baseArgs, { env, stdio: "pipe" });
   assert.equal(readFileSync(join(out, "cases.jsonl"), "utf8").trim().split("\n").length, 7);
   execFileSync(process.execPath, [ANALYZE, out], { env, stdio: "pipe" });

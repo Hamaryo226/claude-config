@@ -1,4 +1,4 @@
-# 会社 PC の ~/.claude へこのプロファイルを配置する (Windows / PowerShell)。
+﻿# 会社 PC の ~/.claude へこのプロファイルを配置する (Windows / PowerShell)。
 #
 #   .\install.ps1              # 差分を表示するだけ (何も書き換えない)
 #   .\install.ps1 -Apply       # 実際に配置する

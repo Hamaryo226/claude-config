@@ -24,8 +24,3 @@ paths:
 - `TargetFramework` / `LangVersion` / `Nullable` を、依頼されていないのに変えない
 - `obj/` `bin/` の中身を直接編集しない
 - `.sln` のプロジェクト構成を、依頼されていないのに並べ替えない
-
-## テスト
-
-- テストプロジェクトの命名と配置は既存に合わせる (例: `tests/<Project>.Tests`)
-- nullable が有効なプロジェクトでは `!` (null 免除) を安易に付けない

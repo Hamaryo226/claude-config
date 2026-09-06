@@ -36,6 +36,36 @@ const ok = (m) => console.log(`  OK   ${m}`);
 const ng = (m) => { failures++; console.log(`  NG   ${m}`); };
 const info = (m) => console.log(`  --   ${m}`);
 
+// ---------------------------------------------------------------- 0. 会社プロファイルの不変条件
+
+if (profile === "work") {
+  console.log("\n[0] work プロファイルの実行条件");
+  const settingsPath = join(profileDir, "settings.json");
+  const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
+
+  if (settings.effortLevel === "high") ok("effortLevel: high");
+  else ng(`effortLevel が high ではない (${settings.effortLevel ?? "未指定"})`);
+
+  if (settings.includeGitInstructions === false) ok("組み込み Git 指示を無効化 (独自指示との重複なし)");
+  else ng("includeGitInstructions が false ではない");
+
+  if (settings.skipWebFetchPreflight === true) ok("WebFetch の外部ホスト名確認を無効化");
+  else ng("skipWebFetchPreflight が true ではない");
+
+  if (settings.env?.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY === "1") ok("品質アンケートを無効化");
+  else ng("CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY が 1 ではない");
+
+  for (const name of ["test-runner.md", "docs-ja.md", "lib-scout.md"]) {
+    const body = readFileSync(join(profileDir, "agents", name), "utf8");
+    if (/^(model|effort):/m.test(body)) ng(`${name}: model / effort を固定せずメインセッションから継承する`);
+    else ok(`${name}: model / effort を継承`);
+  }
+
+  const ps1 = readFileSync(join(profileDir, "install.ps1"));
+  if (ps1[0] === 0xef && ps1[1] === 0xbb && ps1[2] === 0xbf) ok("install.ps1: Windows PowerShell 5.1 用 UTF-8 BOM");
+  else ng("install.ps1: Windows PowerShell 5.1 で日本語を誤読しないよう UTF-8 BOM が必要");
+}
+
 // ---------------------------------------------------------------- 1. rules の frontmatter
 
 console.log(`\n[1] rules/*.md の frontmatter (${profile})`);
@@ -74,6 +104,11 @@ if (!existsSync(skillsDir)) {
     if (name !== entry.name) ng(`${entry.name}: name がディレクトリ名と一致しない (${name || "未指定"})`);
     else if (!description) ng(`${entry.name}: description が無い`);
     else ok(`${entry.name}: frontmatter`);
+
+    if (profile === "work" && ["system-change", "verify-change"].includes(entry.name)) {
+      if (/^disable-model-invocation:\s*true\s*$/m.test(fm[1])) ok(`${entry.name}: 手動起動専用 (常時 context なし)`);
+      else ng(`${entry.name}: disable-model-invocation: true が必要`);
+    }
 
     const eagerRefs = [...body.matchAll(/(^|\s)@references\/([^\s)]+)/g)].map((m) => m[2]);
     if (eagerRefs.length) {

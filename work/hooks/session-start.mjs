@@ -100,27 +100,10 @@ function main() {
     if (changed.length > 15) lines.push(`  - ... 他 ${changed.length - 15} 件`);
   }
 
-  const log = sh("git", ["log", "-3", "--pretty=format:%h %s"], cwd);
-  if (log) {
-    lines.push("- 直近のコミット:");
-    lines.push(...log.split("\n").map((l) => `  - ${l}`));
-  }
-
   const stack = detectStack(root);
   if (stack.length) {
     lines.push("- 検出したビルド／テストの入口:");
     lines.push(...stack.map((s) => `  - ${s}`));
-  }
-
-  // PR は無ければ静かに省略 (gh 未認証・リモート無し・PR 無しでも落ちない)
-  const prJson = sh("gh", ["pr", "view", "--json", "number,title,state"], cwd, 5000);
-  if (prJson.startsWith("{")) {
-    try {
-      const pr = JSON.parse(prJson);
-      lines.push(`- このブランチの PR: #${pr.number} ${pr.title} [${pr.state}]`);
-    } catch {
-      /* 想定外の出力は無視 */
-    }
   }
 
   const context = [

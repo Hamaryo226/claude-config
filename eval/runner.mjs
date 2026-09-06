@@ -24,7 +24,7 @@ const DEFAULTS = {
   tasks: null,
   repeat: 1,
   model: "sonnet",
-  effort: "medium",
+  effort: "high",
   permissionMode: "bypassPermissions",
   allowedTools: null,
   timeout: 900,
@@ -77,7 +77,7 @@ function usage() {
   --tasks <id,id,...>         回すタスク (既定: eval/tasks/ の全部)
   --repeat <N>                同一条件の反復回数 (既定: 1)
   --model <name>              --model に渡す値 (既定: sonnet)
-  --effort <level>            --effort に渡す値 (既定: medium)
+  --effort <level>            --effort に渡す値 (既定: high)
   --permission-mode <mode>    (既定: bypassPermissions。README の「権限まわりの制約」を読むこと)
   --allowed-tools <list>      全アームに同じ --allowedTools を渡す (空白区切り)。
                               dontAsk と組み合わせると「全アーム共通の下限 + 各アームの deny」で回せる
@@ -105,6 +105,12 @@ function sh(cmd, args, opts = {}) {
     if (opts.throwOnError) throw e;
     return "";
   }
+}
+
+// テストでは Node スクリプトを Claude CLI の代わりに使う。通常実行では実 CLI を呼ぶ。
+function claudeProcess(args) {
+  const script = process.env.CLAUDE_CONFIG_EVAL_CLI_SCRIPT;
+  return script ? [process.execPath, [script, ...args]] : ["claude", args];
 }
 
 const git = (cwd, args) =>
@@ -320,7 +326,8 @@ function runOne({ task, arm, rep, opts, configDir, runDir }) {
 
   log(`  実行: ${key}`);
   const started = Date.now();
-  const r = spawnSync("claude", args, {
+  const [claudeCommand, claudeArgs] = claudeProcess(args);
+  const r = spawnSync(claudeCommand, claudeArgs, {
     cwd: wsDir,
     env: childProcessEnv({ CLAUDE_CONFIG_DIR: configDir }),
     encoding: "utf8",
@@ -452,7 +459,8 @@ function main() {
   // ---- 実験条件を残す。ここが無いと後から結果を読み直せない ----
   const configSha = sh("git", ["rev-parse", "HEAD"], { cwd: REPO_DIR });
   const configDirty = sh("git", ["status", "--porcelain"], { cwd: REPO_DIR }) !== "";
-  const claudeVersion = sh("claude", ["--version"]);
+  const [claudeCommand, claudeArgs] = claudeProcess(["--version"]);
+  const claudeVersion = sh(claudeCommand, claudeArgs);
   const configItems = Object.values(armsSpec.layers).flat();
   const configSourceHash = sha256OfItems(profileDir, configItems);
   const harnessHash = sha256OfItems(EVAL_DIR, ["runner.mjs", "environment.mjs", "danger-patterns.mjs", "arms.json"]);

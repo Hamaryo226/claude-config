@@ -23,7 +23,8 @@ Claude Code をヘッドレス (`claude -p`) で起動する。`--setting-source
 作業コピー側の `.claude/` や実マシンの設定は一切読まれない。
 
 プロファイルは `--profile personal` (リポジトリのルート) と `--profile work` (`work/`) を切り替える。
-主な評価対象は会社環境の Sonnet 5 なので、通常は `--profile work --model sonnet` で回す。
+主な評価対象は会社環境の Sonnet 5 (`high`) なので、通常は
+`--profile work --model sonnet --effort high` で回す。`--effort` の既定値も `high`。
 
 ## 使い方
 

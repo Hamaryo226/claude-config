@@ -45,6 +45,28 @@ cd /tmp/claude-config/work && ./install.sh
    `application-prod*.yml` や `*.tfvars` の読み取りを止めているので、業務上必要なら外す
 4. `claude doctor` でエラーが無いことを確認し、新しいセッションで `/status` `/context` を見る
 
+### Bedrock / モデル設定
+
+このテンプレートは `effortLevel: "high"` だけを指定し、モデル ID は固定しない。
+会社が割り当てた Sonnet 5 の Bedrock inference profile を managed settings または環境変数で指定する。
+個人リポジトリに ARN、AWS profile 名、リージョン、認証情報を書かない。
+
+- メインモデル: `ANTHROPIC_MODEL` または managed settings の `model`
+- `sonnet` alias の割り当て: `ANTHROPIC_DEFAULT_SONNET_MODEL`
+- カスタム ARN で effort が認識されない場合: 管理者側で
+  `ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES` を設定
+- 配置後: `/status` で provider、実モデル、`high` を確認
+
+サブエージェントはモデルと effort を固定せず、メインセッションの設定を継承する。
+これにより `model: sonnet` が Bedrock の別バージョンへ解決される事故を避ける。
+
+`skipWebFetchPreflight: true` は、WebFetch 前のホスト名確認を Anthropic 側へ送らないための設定。
+`permissions.allow` の明示的なドメイン制限と組み合わせているので、`WebFetch(domain:*)` のような
+広い許可へ変えない。品質アンケートも無効化するが、stable channel の更新確認は維持する。
+
+`includeGitInstructions: false` は、組み込み Git 指示とこのプロファイルの `CLAUDE.md` / `/commit` /
+SessionStart スナップショットとの重複を避ける設定。独自 Git 指示を削除する場合は再度有効にする。
+
 ## `__CLAUDE_DIR__` について
 
 `settings.json` の `statusLine.command` とフックの `args` は `__CLAUDE_DIR__` というプレースホルダで
@@ -83,7 +105,15 @@ cd /tmp/claude-config/work && ./install.sh
   鍵ファイルの `cat` を実行前に拒否する
 - `format-on-edit.mjs` — `.cs` → `dotnet format`、prettier/eslint、`.py` → `ruff format`。
   **すべて「リポジトリに設定がある場合のみ」動く**
-- `session-start.mjs` — ブランチ・未コミット変更・直近コミット・ビルドコマンドを自動収集
+- `session-start.mjs` — ブランチ・未コミット変更・ビルドコマンドを自動収集。
+  起動のたびに外部通信しない
+
+## skills
+
+- `/system-change <要求>` — 影響範囲を絞ってから実装し、契約・データ・運用まで検証する
+- `/verify-change [対象]` — 現在の差分に必要な検証を選び、実行済み／未確認を分けて報告する
+
+どちらも手動起動専用。通常セッションでは description も読み込まれないため、常時トークンを消費しない。
 
 ### Java / Kotlin を自動整形しない理由
 

@@ -8,8 +8,6 @@ paths:
   - "**/*.service"
   - "**/nginx*.conf"
   - "**/web.config"
-  - "**/*.ps1"
-  - "**/*.sh"
   - "**/.github/workflows/*.{yml,yaml}"
 ---
 

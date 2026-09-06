@@ -93,6 +93,8 @@ work/skills/*
 !work/skills/onboard/
 !work/skills/project-analyze/
 !work/skills/release/
+!work/skills/system-change/
+!work/skills/verify-change/
 
 # --- 念のための明示的な除外 ---
 # 上の /* で既に無視されているが、事故を防ぐため意図を残しておく。

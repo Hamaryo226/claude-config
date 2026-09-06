@@ -5,6 +5,9 @@
 各リポジトリの `CLAUDE.md` / `AGENTS.md` / `.claude/settings.json`、および会社が配布する
 managed settings が常に優先。ここに書くのは、どの案件でも変わらない前提だけ。
 
+- 利用環境は Claude Code CLI + AWS Bedrock + 会社指定の Sonnet 5 (`high`)。
+  Opus / Haiku、Claude Desktop / Web、Anthropic API 直結を使える前提にしない
+
 <!-- ここから: 配置後に自分の環境に合わせて埋める ------------------------------ -->
 
 ## この環境について (要記入)

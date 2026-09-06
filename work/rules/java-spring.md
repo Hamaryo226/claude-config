@@ -32,8 +32,6 @@ paths:
 
 ## この環境で特に注意すること
 
-- **`application-*.yml` の本番プロファイルを読まない・書き換えない。** 設定で遮断してある
+- **`application-prod*` の本番プロファイルを読まない・書き換えない。** 設定で遮断してある
 - Lombok が入っているリポジトリでは既存の使い方に合わせる。入っていないなら持ち込まない
 - DB を使うテストは、既存のやり方 (Testcontainers か H2 か) に合わせる。新しい方式を持ち込まない
-- Spring のコンテキストを立ち上げるテスト (`@SpringBootTest`) は遅い。
-  単体で済むものは `@ExtendWith(MockitoExtension.class)` で書く
