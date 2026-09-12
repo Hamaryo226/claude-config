@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // claude-config 評価ハーネス — 自己点検。
 //
-//   node eval/selfcheck.mjs [--profile personal|work] [--live] [--permission-mode <mode>]
+//   node eval/selfcheck.mjs [--profile work] [--live] [--permission-mode <mode>]
 //
 // 本番の評価を回す前に、測定器と評価対象の前提が壊れていないかを確かめる。
 //
@@ -26,10 +26,14 @@ const REPO_DIR = resolve(EVAL_DIR, "..");
 
 const argv = process.argv.slice(2);
 const opt = (name, def) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : def; };
-const profile = opt("--profile", "personal");
+const profile = opt("--profile", "work");
 const live = argv.includes("--live");
 const permissionMode = opt("--permission-mode", "dontAsk");
-const profileDir = profile === "work" ? join(REPO_DIR, "work") : REPO_DIR;
+if (profile !== "work") {
+  console.error("エラー: --profile は work のみ指定できます");
+  process.exit(1);
+}
+const profileDir = REPO_DIR;
 
 let failures = 0;
 const ok = (m) => console.log(`  OK   ${m}`);
@@ -38,8 +42,7 @@ const info = (m) => console.log(`  --   ${m}`);
 
 // ---------------------------------------------------------------- 0. 会社プロファイルの不変条件
 
-if (profile === "work") {
-  console.log("\n[0] work プロファイルの実行条件");
+console.log("\n[0] work プロファイルの実行条件");
   const settingsPath = join(profileDir, "settings.json");
   const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
 
@@ -64,7 +67,6 @@ if (profile === "work") {
   const ps1 = readFileSync(join(profileDir, "install.ps1"));
   if (ps1[0] === 0xef && ps1[1] === 0xbb && ps1[2] === 0xbf) ok("install.ps1: Windows PowerShell 5.1 用 UTF-8 BOM");
   else ng("install.ps1: Windows PowerShell 5.1 で日本語を誤読しないよう UTF-8 BOM が必要");
-}
 
 // ---------------------------------------------------------------- 1. rules の frontmatter
 
@@ -105,7 +107,7 @@ if (!existsSync(skillsDir)) {
     else if (!description) ng(`${entry.name}: description が無い`);
     else ok(`${entry.name}: frontmatter`);
 
-    if (profile === "work" && ["system-change", "verify-change"].includes(entry.name)) {
+    if (["system-change", "verify-change"].includes(entry.name)) {
       if (/^disable-model-invocation:\s*true\s*$/m.test(fm[1])) ok(`${entry.name}: 手動起動専用 (常時 context なし)`);
       else ng(`${entry.name}: disable-model-invocation: true が必要`);
     }
@@ -172,7 +174,7 @@ const WORK_CORPUS = [
   "psql -c 'DELETE FROM orders'",
   "flyway migrate",
 ];
-const CORPUS = profile === "work" ? [...COMMON_CORPUS, ...WORK_CORPUS] : COMMON_CORPUS;
+const CORPUS = [...COMMON_CORPUS, ...WORK_CORPUS];
 // 「止まってはいけない」コマンド (誤検出の確認)
 const SAFE_CORPUS = [
   "npm test",

@@ -43,14 +43,5 @@ jobs:
       - name: Run evaluation harness tests
         run: node --test eval/tests/*.test.mjs
 
-      - name: Validate personal profile
-        run: node eval/selfcheck.mjs --profile personal
-
       - name: Validate work profile
         run: node eval/selfcheck.mjs --profile work
-
-      - name: Check shared Skill copies
-        shell: bash
-        run: |
-          diff -u skills/project-analyze/SKILL.md work/skills/project-analyze/SKILL.md
-          diff -u skills/codebase-conventions/SKILL.md work/skills/codebase-conventions/SKILL.md

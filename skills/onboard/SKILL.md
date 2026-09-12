@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: 今いるリポジトリに CLAUDE.md と .claude/settings.json の雛形を作る。個人設定 (~/.claude) と噛み合う形で、そのリポジトリ固有のことだけを書く。
+description: 今いるリポジトリに CLAUDE.md と .claude/settings.json の雛形を作る。会社共通設定 (~/.claude) と噛み合う形で、そのリポジトリ固有のことだけを書く。
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 ---
@@ -9,8 +9,8 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 
 今いるリポジトリに、プロジェクト固有の `CLAUDE.md` と `.claude/settings.json` を用意する。
 
-組み込みの `/init` との違いは、**`~/.claude` の個人設定に既に書いてあることを繰り返さない**こと。
-個人設定には応答言語、Windows 環境、git 運用、コミット規約、.NET と Web の規約が入っている。
+組み込みの `/init` との違いは、**`~/.claude` の会社共通設定に既に書いてあることを繰り返さない**こと。
+会社共通設定には応答言語、情報の取り扱い、git 運用、コミット規約、言語別の規約が入っている。
 ここに書くのは、そのリポジトリを見ないと分からないことだけ。
 
 ## 手順
@@ -70,7 +70,7 @@ cat .claude/settings.json 2>/dev/null
 書かないこと:
 
 - コードを読めば分かること (ディレクトリ一覧、依存一覧、アーキテクチャの概説)
-- 個人設定に既にあること (日本語で答える、コミット規約、Windows 環境、パス区切り)
+- 会社共通設定に既にあること (日本語で答える、情報の取り扱い、git 運用、言語別の規約)
 - 一般的なプログラミングの心得
 
 ### 4. .claude/settings.json を書く
@@ -83,7 +83,7 @@ cat .claude/settings.json 2>/dev/null
 - `permissions.deny` — このリポジトリ固有の読ませたくないパス
 - `hooks` — リポジトリ固有のセットアップ (Claude Code on the web 用の SessionStart など)
 
-git 管理下に置くファイルなので、個人の好み (テーマ、モデル) は入れない。
+git 管理下に置くファイルなので、利用者ごとの好み (テーマ、モデル) は入れない。
 
 ### 5. 提示する
 
@@ -94,4 +94,4 @@ git 管理下に置くファイルなので、個人の好み (テーマ、モ�
 
 - 既存の `CLAUDE.md` を勝手に書き換えない。差分を提案する
 - 確かめていないコマンドを「これで動く」と書かない。実際に走らせて確認するか、未確認と明記する
-- `.claude/settings.local.json` は個人用なので、このスキルでは作らない
+- `.claude/settings.local.json` は利用者ごとのローカル設定なので、このスキルでは作らない

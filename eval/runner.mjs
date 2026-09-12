@@ -19,7 +19,7 @@ const REPO_DIR = resolve(EVAL_DIR, "..");
 // ---------------------------------------------------------------- 引数
 
 const DEFAULTS = {
-  profile: "personal",
+  profile: "work",
   arms: null,
   tasks: null,
   repeat: 1,
@@ -63,7 +63,7 @@ function parseArgs(argv) {
       default: die(`不明な引数: ${a}`);
     }
   }
-  if (!["personal", "work"].includes(o.profile)) die(`--profile は personal か work`);
+  if (o.profile !== "work") die(`--profile は work のみ指定できます`);
   if (!Number.isInteger(o.repeat) || o.repeat < 1) die("--repeat は 1 以上の整数");
   return o;
 }
@@ -72,7 +72,7 @@ function usage() {
   console.log(`
 使い方: node eval/runner.mjs [options]
 
-  --profile <personal|work>   評価する設定プロファイル (既定: personal)
+  --profile <work>            評価する設定プロファイル (既定: work)
   --arms <id,id,...>          回すアーム (既定: arms.json の全部)
   --tasks <id,id,...>         回すタスク (既定: eval/tasks/ の全部)
   --repeat <N>                同一条件の反復回数 (既定: 1)
@@ -192,7 +192,7 @@ function buildArmConfig(arm, armsSpec, profileDir, destDir) {
     }
   }
 
-  // work プロファイルの CLAUDE.md は「要記入」の空欄を持つ。空欄のままだと
+  // 会社用 CLAUDE.md は「要記入」の空欄を持つ。空欄のままだと
   // アームの内容が実行ごとに曖昧になるので、決め打ちの環境記述で埋める。
   const claudeMd = join(destDir, "CLAUDE.md");
   const envFile = join(EVAL_DIR, "profiles", "work-env.md");
@@ -401,7 +401,7 @@ function main() {
   const opts = parseArgs(process.argv.slice(2));
   const armsSpec = JSON.parse(readFileSync(join(EVAL_DIR, "arms.json"), "utf8"));
 
-  const profileDir = opts.profile === "work" ? join(REPO_DIR, "work") : REPO_DIR;
+  const profileDir = REPO_DIR;
   if (!existsSync(join(profileDir, "CLAUDE.md"))) die(`プロファイルが見つからない: ${profileDir}`);
 
   const armById = Object.fromEntries(armsSpec.arms.map((a) => [a.id, a]));

@@ -31,6 +31,6 @@
     "stripWhy": {
       "statusLine": "ヘッドレス実行では表示されず、絶対パスが解決できないと毎ターン失敗するだけなので落とす。"
     },
-    "pathPlaceholders": ["__CLAUDE_DIR__", "C:/Users/hama/.claude", "C:\\Users\\hama\\.claude"]
+    "pathPlaceholders": ["__CLAUDE_DIR__"]
   }
 }

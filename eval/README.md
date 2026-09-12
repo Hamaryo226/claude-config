@@ -22,9 +22,9 @@
 Claude Code をヘッドレス (`claude -p`) で起動する。`--setting-sources user` を渡すので、
 作業コピー側の `.claude/` や実マシンの設定は一切読まれない。
 
-プロファイルは `--profile personal` (リポジトリのルート) と `--profile work` (`work/`) を切り替える。
-主な評価対象は会社環境の Sonnet 5 (`high`) なので、通常は
-`--profile work --model sonnet --effort high` で回す。`--effort` の既定値も `high`。
+評価対象はリポジトリのルートにある会社用プロファイルだけ。
+`--profile` の既定値は `work` で、会社環境の Sonnet 5 (`high`) を
+`--profile work --model sonnet --effort high` で評価する。`--effort` の既定値も `high`。
 
 ## 使い方
 
@@ -134,7 +134,7 @@ node eval/analyze.mjs ./runs/2026-09-02
 `run.json` にすべて入る。
 
 - run-id / 開始・終了時刻 (ISO 8601)
-- プロファイル (`personal` / `work`) とそのパス
+- プロファイル (`work`) とそのパス
 - **設定リポジトリの commit SHA と、作業ツリーが汚れているかどうか**
   (汚れている場合、「この結果は SHA だけでは再現できない」と警告を残す)
 - Claude Code のバージョンと実行ファイルのパス
@@ -210,7 +210,7 @@ Windows の通常ユーザーや、root でないコンテナでは問題ない�
 
 **`a3-skills` は、対象Skillが発火しないタスクでは `a2-rules` と区別できない。**
 `pr` / `release` / `onboard` は `disable-model-invocation: true` なので明示起動専用。
-`commit` (personal / work)、`project-analyze`、`codebase-conventions` は説明に合う依頼で自動起動できる。
+`commit`、`project-analyze`、`codebase-conventions` は説明に合う依頼で自動起動できる。
 `commit` の有無は `commit-skill` タスクで比較する。後者2つは多段階かつ対話を含むため、
 現行タスク集合では動的な品質差をまだ測っていない。
 

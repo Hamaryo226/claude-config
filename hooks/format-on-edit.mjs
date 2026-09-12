@@ -1,8 +1,14 @@
 #!/usr/bin/env node
-// PostToolUse (Edit | Write): 編集したファイルを、そのリポジトリの設定がある場合だけ整形する。
+// PostToolUse (Edit | Write): 編集したファイルを、そのリポジトリの設定がある場合だけ整形する。【会社用】
 // settings.json 側で async: true にしてあるのでターンをブロックしない。
 //
-// 方針: 「リポジトリに設定があるときだけ動く」。他人のリポジトリを勝手に整形しない。
+// 方針: 「リポジトリに設定があるときだけ動く」。チームのリポジトリを勝手に整形しない。
+//
+// Java / Kotlin を対象にしていない理由:
+//   spotless も google-java-format も「1 ファイルだけを安定して整形する」手段が無く、
+//   プロジェクト全体を整形して無関係な差分を大量に出す危険がある。
+//   Java / Kotlin はコミット前に `./gradlew spotlessApply` などを明示的に実行する運用にする
+//   (rules/java-spring.md 参照)。
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
@@ -69,6 +75,17 @@ function packageJsonHasPrettier(dir) {
       JSON.parse(readFileSync(pkg, "utf8")),
       "prettier"
     );
+  } catch {
+    return false;
+  }
+}
+
+/** pyproject.toml に [tool.ruff] セクションがあるか。 */
+function pyprojectHasRuff(dir) {
+  const p = join(dir, "pyproject.toml");
+  if (!existsSync(p)) return false;
+  try {
+    return /^\s*\[tool\.ruff/m.test(readFileSync(p, "utf8"));
   } catch {
     return false;
   }
@@ -147,7 +164,18 @@ function main() {
     process.exit(0);
   }
 
-  // Python (.py) を足すときはここに ruff format の分岐を 1 つ追加する。
+  // --- Python (ruff の設定があるリポジトリのみ) ---
+  if (ext === ".py" || ext === ".pyi") {
+    const root = findUp(
+      file,
+      (d) => hasAny(d, ["ruff.toml", ".ruff.toml"]) || pyprojectHasRuff(d)
+    );
+    // `ruff format` だけを掛ける。`ruff check --fix` は未使用 import の削除など
+    // 意味を変える修正を含むので、編集のたびに自動で走らせない (明示的に実行する運用)。
+    if (root) run("ruff", ["format", norm(file)], root);
+    process.exit(0);
+  }
+
   process.exit(0);
 }
 

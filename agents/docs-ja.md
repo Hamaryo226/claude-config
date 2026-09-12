@@ -1,9 +1,7 @@
 ---
 name: docs-ja
-description: 複数の日本語ドキュメントを横断して書き直す、または実装とドキュメント全体のずれを洗うときに使う。コードは変更しない。1ファイルの一節だけなら直接編集する。
+description: 複数のドキュメントを横断して書き直す、または実装とドキュメント全体のずれを洗うときに使う。コードは変更しない。**1 ファイルの一節を直すだけなら、呼ばずに直接編集した方が速い。**
 tools: Read, Grep, Glob, Edit, Write
-model: sonnet
-effort: medium
 color: blue
 ---
 

@@ -80,7 +80,7 @@ allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 [references/output.md](references/output.md) に従う。
 
 - `paths` フロントマターで対象を限定する。**paths を書けないものは rules にしない**
-- CLAUDE.md (プロジェクト / 会社共通 / 個人) に既にあることを繰り返さない
+- CLAUDE.md (プロジェクト / 会社共通) に既にあることを繰り返さない
 - rules 同士で同じことを書かない
 - 各ルールに根拠を残す。書式: `<ルール> (18/19)` のように分子/分母を添える
 

@@ -13,6 +13,8 @@
 !CLAUDE.md
 !settings.json
 !statusline.mjs
+!install.ps1
+!install.sh
 
 !.github/
 .github/*
@@ -43,6 +45,8 @@ skills/*
 !skills/onboard/
 !skills/project-analyze/
 !skills/release/
+!skills/system-change/
+!skills/verify-change/
 
 # --- 設定の評価基盤 ---
 # eval/ は自作のスクリプトと fixture だけ。実行結果 (eval/runs/) は
@@ -60,41 +64,6 @@ eval/*
 # 生ログと作業コピー (eval/runs/) は追跡しない。作業対象のコードが丸ごと入るため。
 !eval/results/
 eval/runs/
-
-# --- 会社 PC 用プロファイル (テンプレート。この PC では動かない) ---
-# work/ 配下は自作ファイルしか置かないが、万一 Claude Code の実行に使われた場合に
-# セッション履歴や認証情報が混ざらないよう、ここでもホワイトリストで絞る。
-!work/
-work/*
-!work/README.md
-!work/install.ps1
-!work/install.sh
-!work/CLAUDE.md
-!work/settings.json
-!work/statusline.mjs
-
-!work/agents/
-work/agents/*
-!work/agents/*.md
-
-!work/hooks/
-work/hooks/*
-!work/hooks/*.mjs
-
-!work/rules/
-work/rules/*
-!work/rules/*.md
-
-!work/skills/
-work/skills/*
-!work/skills/codebase-conventions/
-!work/skills/commit/
-!work/skills/pr/
-!work/skills/onboard/
-!work/skills/project-analyze/
-!work/skills/release/
-!work/skills/system-change/
-!work/skills/verify-change/
 
 # --- 念のための明示的な除外 ---
 # 上の /* で既に無視されているが、事故を防ぐため意図を残しておく。
