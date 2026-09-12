@@ -11,6 +11,7 @@
 !.gitattributes
 !README.md
 !CLAUDE.md
+!AGENTS.md
 !settings.json
 !statusline.mjs
 !install.ps1
@@ -54,6 +55,7 @@ skills/*
 !eval/
 eval/*
 !eval/README.md
+!eval/instruction-review.md
 !eval/*.mjs
 !eval/arms.json
 !eval/profiles/

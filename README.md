@@ -106,6 +106,10 @@ SessionStart スナップショットとの重複を避ける設定。独自 Git
 
 ## 評価
 
+保守時の指示は [AGENTS.md](AGENTS.md) にある。配布用 CLAUDE.md と役割を分け、
+AGENTS.md は install スクリプトでは配置しない。
+今回の指示整理の根拠と検証範囲は [見直し記録](eval/instruction-review.md) を参照する。
+
 `eval/` は、この会社用設定が開発タスクの結果に与える影響を比較する評価基盤。
 静的チェックは `node eval/selfcheck.mjs --profile work`、評価手順は [`eval/README.md`](eval/README.md) を参照する。
 
